@@ -4,6 +4,7 @@ import { getRuntimeConfig } from '@/config/runtime';
 import type { WorkerBindings } from '@/config/runtime';
 import {
   clientWebSocketMessageSchema,
+  compareIsoDates,
   createTaskMutationSchema,
   createTaskResponseSchema,
   initResponseSchema,
@@ -122,32 +123,15 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
     return [...dates];
   }
 
-  private async broadcastStateForDate(
-    familyId: string,
-    date: IsoDate,
-  ): Promise<void> {
-    const update = await this.getStateUpdateMessage(familyId, date);
-
-    for (const connection of this.ctx.getWebSockets()) {
-      const attachment = tryGetSocketAttachment(connection);
-
-      if (
-        !attachment ||
-        attachment.familyId !== familyId ||
-        attachment.date !== date
-      ) {
-        continue;
-      }
-
-      this.sendMessage(connection, update);
-    }
-  }
-
   private async broadcastStateForViewedDates(
     familyId: string,
     seededUpdatesByDate: ReadonlyMap<IsoDate, string> = new Map(),
+    minimumDate?: IsoDate,
   ): Promise<void> {
-    const viewedDates = this.getViewedDatesForFamily(familyId);
+    const viewedDates = this.getViewedDatesForFamily(familyId).filter(
+      (date) =>
+        minimumDate === undefined || compareIsoDates(date, minimumDate) >= 0,
+    );
 
     if (viewedDates.length === 0) {
       return;
@@ -311,7 +295,11 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
             completed: payload.completed,
           });
 
-          await this.broadcastStateForDate(familyId, resolvedDate);
+          await this.broadcastStateForViewedDates(
+            familyId,
+            new Map(),
+            resolvedDate,
+          );
           return;
         }
         case 'skip_day_toggled': {
@@ -332,12 +320,8 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
 
           await this.broadcastStateForViewedDates(
             familyId,
-            new Map([
-              [
-                resolvedDate,
-                await this.getStateUpdateMessage(familyId, resolvedDate),
-              ],
-            ]),
+            new Map(),
+            resolvedDate,
           );
           return;
         }

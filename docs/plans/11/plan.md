@@ -92,7 +92,7 @@ Failure and edge cases to guard:
 1. Add `docs/plans/11/plan.md` and keep implementation aligned to the family-scoped FEAT-011 seam.
 2. Extend the realtime type contracts with a skip-day toggle client message and ensure server responses remain the existing board-state update flow.
 3. Add db helpers to create and remove a family skip-day row for a date, plus service-layer mutation helpers that validate the request and invoke streak sync.
-4. Update the family Durable Object websocket handler to process skip-day toggles and broadcast refreshed board state for the affected viewed date(s).
+4. Update the family Durable Object websocket handler to process skip-day toggles and broadcast refreshed board state for every viewed date at or after the mutated day, matching the retroactive streak-recalculation boundary.
 5. Extend the board UI hook/action surface so Day Navigation can send the skip-day toggle mutation for the active board date.
 6. Update Day Navigation, dashboard columns, and single-list task surfaces to show the skip-day state with WeDo-consistent visual dimming and a struck-through date label while keeping tasks visible.
 7. Add regression tests across types, services, realtime, hook/state helpers, and route/component rendering.
@@ -135,7 +135,7 @@ This slice is done when:
 - `docs/plans/11/plan.md` is checked in and matches the implemented FEAT-011 seam
 - skip-day toggles persist through D1 via the family Durable Object and trigger streak resync
 - the board UI shows an obvious skip-day toggle and forgiving skipped-day styling without hiding tasks
-- realtime clients receive refreshed board state after skip-day mutations
+- realtime clients receive refreshed board state after skip-day mutations, and retroactive board mutations fan out to later viewed dates whose streak displays changed
 - local typecheck, lint, unit, e2e, and structural checks pass
 - the updated UI has been visually verified in local Chrome via Playwright
 - the branch is ready to update or open for review against `main`
