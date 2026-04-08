@@ -35,6 +35,8 @@
   "observability": {
     "enabled": true,
   },
+  // Configure the Anthropic API key with:
+  //   wrangler secret put ANTHROPIC_API_KEY
   "vars": {
     "HOUSEHOLD_NAME": "Maple House",
   },

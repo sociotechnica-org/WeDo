@@ -1,14 +1,18 @@
 import { DurableObject } from 'cloudflare:workers';
-import { z } from 'zod';
+import { ZodError, z } from 'zod';
 import { getRuntimeConfig } from '@/config/runtime';
 import type { WorkerBindings } from '@/config/runtime';
 import {
   clientWebSocketMessageSchema,
+  createTaskMutationSchema,
+  createTaskResponseSchema,
   initResponseSchema,
   isoDateSchema,
   stateUpdateMessageSchema,
+  type IsoDate,
 } from '@/types';
 import {
+  createRecurringTask,
   FamilyBoardStateError,
   getFamilyBoardState,
   toggleTaskCompletion,
@@ -74,30 +78,155 @@ function toStateUpdate(
   );
 }
 
+function getRequestPath(request: Request): string {
+  return new URL(request.url).pathname;
+}
+
 export class FamilyBoard extends DurableObject<WorkerBindings> {
+  private async getStateUpdateMessage(familyId: string, date: IsoDate) {
+    return toStateUpdate(await getFamilyBoardState(this.env.DB, familyId, date));
+  }
+
+  private getViewedDatesForFamily(familyId: string): IsoDate[] {
+    const dates = new Set<IsoDate>();
+
+    for (const connection of this.ctx.getWebSockets()) {
+      const attachment = getSocketAttachment(connection);
+
+      if (attachment.familyId !== familyId || !attachment.date) {
+        continue;
+      }
+
+      dates.add(attachment.date);
+    }
+
+    return [...dates];
+  }
+
+  private async broadcastStateForDate(
+    familyId: string,
+    date: IsoDate,
+  ): Promise<void> {
+    const update = await this.getStateUpdateMessage(familyId, date);
+
+    for (const connection of this.ctx.getWebSockets()) {
+      const attachment = getSocketAttachment(connection);
+
+      if (attachment.familyId !== familyId || attachment.date !== date) {
+        continue;
+      }
+
+      connection.send(update);
+    }
+  }
+
+  private async broadcastStateForViewedDates(familyId: string): Promise<void> {
+    const viewedDates = this.getViewedDatesForFamily(familyId);
+
+    if (viewedDates.length === 0) {
+      return;
+    }
+
+    const updatesByDate = new Map<IsoDate, string>();
+
+    for (const date of viewedDates) {
+      updatesByDate.set(date, await this.getStateUpdateMessage(familyId, date));
+    }
+
+    for (const connection of this.ctx.getWebSockets()) {
+      const attachment = getSocketAttachment(connection);
+
+      if (attachment.familyId !== familyId || !attachment.date) {
+        continue;
+      }
+
+      const update = updatesByDate.get(attachment.date);
+
+      if (!update) {
+        continue;
+      }
+
+      connection.send(update);
+    }
+  }
+
+  private async handleTaskCreationRequest(
+    request: Request,
+    familyId: string,
+  ): Promise<Response> {
+    try {
+      const payload = createTaskMutationSchema.parse(
+        (await request.json()) as unknown,
+      );
+      const task = await createRecurringTask(this.env.DB, {
+        familyId,
+        personId: payload.person_id,
+        title: payload.task.title,
+        emoji: payload.task.emoji,
+        scheduleRules: payload.task.schedule_rules,
+      });
+      const state = await getFamilyBoardState(
+        this.env.DB,
+        familyId,
+        payload.viewed_date,
+      );
+
+      await this.broadcastStateForViewedDates(familyId);
+
+      return Response.json(
+        createTaskResponseSchema.parse({
+          task,
+          state,
+        }),
+        {
+          status: 201,
+        },
+      );
+    } catch (error) {
+      const status =
+        error instanceof FamilyBoardStateError || error instanceof ZodError
+          ? 400
+          : 500;
+      const message =
+        error instanceof Error ? error.message : 'Task creation failed.';
+
+      return new Response(message, { status });
+    }
+  }
+
   override async fetch(request: Request): Promise<Response> {
     const upgradeHeader = request.headers.get('Upgrade');
 
-    if (upgradeHeader?.toLowerCase() !== 'websocket') {
-      return new Response('Expected websocket upgrade.', { status: 426 });
+    if (upgradeHeader?.toLowerCase() === 'websocket') {
+      const familyId = getFamilyIdFromRequest(request);
+      const sockets = new WebSocketPair();
+      const client = sockets[0];
+      const server = sockets[1];
+
+      if (!client || !server) {
+        throw new FamilyBoardStateError('Unable to create websocket pair.');
+      }
+
+      attachSocketState(server, familyId);
+      this.ctx.acceptWebSocket(server);
+
+      return new Response(null, {
+        status: 101,
+        webSocket: client,
+      });
     }
 
-    const familyId = getFamilyIdFromRequest(request);
-    const sockets = new WebSocketPair();
-    const client = sockets[0];
-    const server = sockets[1];
-
-    if (!client || !server) {
-      throw new FamilyBoardStateError('Unable to create websocket pair.');
+    if (
+      request.method === 'POST' &&
+      getRequestPath(request).startsWith('/tasks/')
+    ) {
+      return await this.handleTaskCreationRequest(
+        request,
+        getFamilyIdFromRequest(request),
+      );
     }
 
-    attachSocketState(server, familyId);
-    this.ctx.acceptWebSocket(server);
-
-    return new Response(null, {
-      status: 101,
-      webSocket: client,
-    });
+    return new Response('Not found.', { status: 404 });
   }
 
   override async webSocketMessage(
@@ -141,26 +270,7 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
             completed: payload.completed,
           });
 
-          const state = await getFamilyBoardState(
-            this.env.DB,
-            familyId,
-            resolvedDate,
-          );
-          const update = toStateUpdate(state);
-
-          for (const connection of this.ctx.getWebSockets()) {
-            const attachment = getSocketAttachment(connection);
-
-            if (attachment.familyId !== familyId) {
-              continue;
-            }
-
-            if (attachment.date !== resolvedDate) {
-              continue;
-            }
-
-            connection.send(update);
-          }
+          await this.broadcastStateForDate(familyId, resolvedDate);
         }
       }
     } catch (error) {

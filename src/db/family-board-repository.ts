@@ -38,6 +38,15 @@ type TaskCompletionMutation = {
   completedAt: IsoTimestamp;
 };
 
+type TaskCreationMutation = {
+  familyId: string;
+  personId: string;
+  title: string;
+  emoji: string;
+  scheduleRules: ScheduleRules;
+  createdAt: IsoTimestamp;
+};
+
 function parseScheduleRules(value: unknown): ScheduleRules {
   if (typeof value === 'string') {
     return scheduleRulesSchema.parse(JSON.parse(value));
@@ -131,6 +140,43 @@ export async function getFamilyTask(
     .limit(1);
 
   return taskRow ? toTask(taskRow) : null;
+}
+
+export async function getFamilyPerson(
+  client: DatabaseClient,
+  familyId: string,
+  personId: string,
+): Promise<Person | null> {
+  const db = getDatabase(client);
+  const [personRow] = await db
+    .select()
+    .from(personsTable)
+    .where(
+      and(eq(personsTable.family_id, familyId), eq(personsTable.id, personId)),
+    )
+    .limit(1);
+
+  return personRow ? personSchema.parse(personRow) : null;
+}
+
+export async function createTask(
+  client: DatabaseClient,
+  mutation: TaskCreationMutation,
+): Promise<Task> {
+  const db = getDatabase(client);
+  const task = taskSchema.parse({
+    id: crypto.randomUUID(),
+    family_id: mutation.familyId,
+    person_id: mutation.personId,
+    title: mutation.title,
+    emoji: mutation.emoji,
+    schedule_rules: mutation.scheduleRules,
+    created_at: mutation.createdAt,
+  });
+
+  await db.insert(tasksTable).values(task);
+
+  return task;
 }
 
 export async function createTaskCompletion(

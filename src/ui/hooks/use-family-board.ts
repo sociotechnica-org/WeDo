@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   boardResponseSchema,
+  createTaskResponseSchema,
   serverWebSocketMessageSchema,
   type BoardResponse,
   type InitRequest,
@@ -13,6 +14,7 @@ import {
   findTaskCompletionStatus,
   getRealtimeCloseMessage,
   getRealtimeErrorMessage,
+  type ReadyFamilyBoardState,
   type FamilyBoardViewState,
   withOptimisticTaskToggle,
   withRealtimeIssue,
@@ -34,6 +36,11 @@ function buildBoardUrl(requestedDay?: IsoDate): string {
   }
 
   return url.toString();
+}
+
+function buildCreateTaskUrl(familyId: string): string {
+  return new URL(`/api/families/${familyId}/tasks`, window.location.origin)
+    .toString();
 }
 
 async function getMessageText(
@@ -130,6 +137,50 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     [commitState],
   );
 
+  const createTask = useCallback(
+    async (personId: string, rawInput: string): Promise<void> => {
+      const currentState = stateRef.current;
+
+      if (currentState.status !== 'ready') {
+        throw new Error('The board is not ready for task entry.');
+      }
+
+      const response = await fetch(
+        buildCreateTaskUrl(currentState.board.family_id),
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            person_id: personId,
+            raw_input: rawInput,
+            viewed_date: currentState.board.day.date,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          (await response.text()) || 'Task creation failed unexpectedly.',
+        );
+      }
+
+      const payload = createTaskResponseSchema.parse(
+        (await response.json()) as unknown,
+      );
+
+      commitState(
+        createReadyFamilyBoardState(
+          payload.state,
+          currentState.householdName,
+          currentState.todayDate,
+        ),
+      );
+    },
+    [commitState],
+  );
+
   useEffect(() => {
     // Changing the requested day should rebuild the board snapshot against a
     // fresh bootstrap + socket initialization for that exact date.
@@ -198,7 +249,6 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
                   payload.state,
                   bootstrap.board.householdName,
                   bootstrap.board.todayDate,
-                  toggleTask,
                 ),
               );
             } catch (error) {
@@ -290,7 +340,21 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     };
   }, [commitState, requestedDay, toggleTask]);
 
-  return state;
+  if (state.status !== 'ready') {
+    return state;
+  }
+
+  return {
+    ...state,
+    createTask,
+    toggleTask,
+  };
 }
 
-export type { ReadyFamilyBoardViewState } from './family-board-state';
+type ToggleTask = (taskId: string) => boolean;
+type CreateTask = (personId: string, rawInput: string) => Promise<void>;
+
+export type ReadyFamilyBoardViewState = ReadyFamilyBoardState & {
+  createTask: CreateTask;
+  toggleTask: ToggleTask;
+};

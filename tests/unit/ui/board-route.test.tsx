@@ -20,6 +20,7 @@ const readyBoardState = {
     status: 'degraded' as const,
     message: 'The board is still visible, but live updates are paused.',
   },
+  createTask: vi.fn(),
   toggleTask: vi.fn(),
   board: {
     family_id: 'family-maple',

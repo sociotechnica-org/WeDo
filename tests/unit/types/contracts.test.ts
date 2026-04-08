@@ -4,9 +4,13 @@ import {
   boardRequestQuerySchema,
   boardResponseSchema,
   clientWebSocketMessageSchema,
+  createTaskMutationSchema,
+  createTaskResponseSchema,
   dayCodeSchema,
   familyBoardStateSchema,
   initResponseSchema,
+  nlTaskEntryRequestSchema,
+  parsedTaskSchema,
   personSchema,
   scheduleRulesSchema,
   serverWebSocketMessageSchema,
@@ -120,6 +124,21 @@ describe('shared type contracts', () => {
         todayDate: '2026-04-08',
       },
     });
+    expect(
+      parsedTaskSchema.parse({
+        title: 'Practice piano',
+        emoji: '🎹',
+        schedule_rules: {
+          days: ['MO', 'TU', 'TH', 'FR'],
+        },
+      }),
+    ).toEqual({
+      title: 'Practice piano',
+      emoji: '🎹',
+      schedule_rules: {
+        days: ['MO', 'TU', 'TH', 'FR'],
+      },
+    });
   });
 
   it('normalizes invalid board query day values to an omitted day override', () => {
@@ -147,6 +166,54 @@ describe('shared type contracts', () => {
 
     expect(parsedRules.days).toEqual(['MO', 'WE', 'FR']);
     expect(dayCodeSchema.parse('SU')).toBe('SU');
+  });
+
+  it('accepts valid natural-language task entry contracts', () => {
+    expect(
+      nlTaskEntryRequestSchema.parse({
+        person_id: 'person-jess',
+        raw_input: ' practice piano weekdays ',
+        viewed_date: '2026-04-08',
+      }),
+    ).toEqual({
+      person_id: 'person-jess',
+      raw_input: 'practice piano weekdays',
+      viewed_date: '2026-04-08',
+    });
+
+    expect(
+      createTaskMutationSchema.parse({
+        person_id: 'person-jess',
+        viewed_date: '2026-04-08',
+        task: {
+          title: 'Practice piano',
+          emoji: '🎹',
+          schedule_rules: {
+            days: ['MO', 'TU', 'TH', 'FR'],
+          },
+        },
+      }),
+    ).toEqual({
+      person_id: 'person-jess',
+      viewed_date: '2026-04-08',
+      task: {
+        title: 'Practice piano',
+        emoji: '🎹',
+        schedule_rules: {
+          days: ['MO', 'TU', 'TH', 'FR'],
+        },
+      },
+    });
+
+    expect(
+      createTaskResponseSchema.parse({
+        task: exampleTask,
+        state: exampleFamilyBoardState,
+      }),
+    ).toEqual({
+      task: exampleTask,
+      state: exampleFamilyBoardState,
+    });
   });
 
   it('rejects invalid schedule rules', () => {

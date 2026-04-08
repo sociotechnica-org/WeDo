@@ -4,6 +4,7 @@ import {
   getBoardResponse,
 } from '@/services/board-service';
 import type { WorkerBindings } from '@/config/runtime';
+import { registerTaskRoutes } from '@/workers/routes/tasks';
 import {
   boardRequestQuerySchema,
   getFamilyRoomKey,
@@ -58,6 +59,8 @@ export function createApp() {
 
     return await stub.fetch(context.req.raw);
   });
+
+  registerTaskRoutes(app);
 
   return app;
 }

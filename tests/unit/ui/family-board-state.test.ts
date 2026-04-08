@@ -53,12 +53,11 @@ const board = familyBoardStateSchema.parse({
 });
 
 describe('family-board-state helpers', () => {
-  const toggleTask = () => true;
   const todayDate = '2026-04-08' as const;
 
   it('creates a live ready state from the latest board snapshot', () => {
     expect(
-      createReadyFamilyBoardState(board, 'River House', todayDate, toggleTask),
+      createReadyFamilyBoardState(board, 'River House', todayDate),
     ).toEqual({
       status: 'ready',
       board,
@@ -67,7 +66,6 @@ describe('family-board-state helpers', () => {
       realtime: {
         status: 'live',
       },
-      toggleTask,
     });
   });
 
@@ -76,7 +74,6 @@ describe('family-board-state helpers', () => {
       board,
       'River House',
       todayDate,
-      toggleTask,
     );
 
     expect(
@@ -93,7 +90,6 @@ describe('family-board-state helpers', () => {
         status: 'degraded',
         message: 'The board is still visible, but live updates are paused.',
       },
-      toggleTask,
     });
   });
 
@@ -102,7 +98,6 @@ describe('family-board-state helpers', () => {
       board,
       'River House',
       todayDate,
-      toggleTask,
     );
     const completedAt = '2026-04-08T12:00:00Z';
     const optimisticState = withOptimisticTaskToggle(
