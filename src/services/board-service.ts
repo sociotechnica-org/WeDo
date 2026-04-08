@@ -62,8 +62,9 @@ export async function getBoardResponse(
   options: BoardResponseOptions = {},
 ): Promise<BoardResponse> {
   const runtime = getRuntimeConfig(bindings);
+  const now = options.now ?? new Date();
   const familyId = await getPrimaryFamilyId(bindings.DB);
-  const todayDate = getTodayForTimezone(runtime.timezone, options.now);
+  const todayDate = getTodayForTimezone(runtime.timezone, now);
 
   if (!familyId) {
     throw new BoardBootstrapError(
@@ -78,7 +79,7 @@ export async function getBoardResponse(
       date: resolveBoardDate(
         runtime.timezone,
         options.requestedDate,
-        options.now,
+        now,
       ),
       todayDate,
     },

@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import { z } from 'zod';
+import { getRuntimeConfig } from '@/config/runtime';
 import type { WorkerBindings } from '@/config/runtime';
 import {
   clientWebSocketMessageSchema,
@@ -12,6 +13,7 @@ import {
   getFamilyBoardState,
   toggleTaskCompletion,
 } from '@/services/family-board-service';
+import { resolveBoardDate } from '@/services/board-service';
 
 const webSocketAttachmentSchema = z
   .object({
@@ -39,13 +41,8 @@ function getFamilyIdFromRequest(request: Request): string {
   return familyId;
 }
 
-function getAttachedFamilyId(socket: WebSocket): string {
-  return webSocketAttachmentSchema.parse(socket.deserializeAttachment())
-    .familyId;
-}
-
-function getAttachedDate(socket: WebSocket) {
-  return webSocketAttachmentSchema.parse(socket.deserializeAttachment()).date;
+function getSocketAttachment(socket: WebSocket) {
+  return webSocketAttachmentSchema.parse(socket.deserializeAttachment());
 }
 
 function attachSocketState(socket: WebSocket, familyId: string, date?: string) {
@@ -108,7 +105,7 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
     message: ArrayBuffer | string,
   ): Promise<void> {
     try {
-      const familyId = getAttachedFamilyId(socket);
+      const { familyId } = getSocketAttachment(socket);
       const payload = clientWebSocketMessageSchema.parse(
         JSON.parse(getMessageText(message)),
       );
@@ -126,26 +123,37 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
           return;
         }
         case 'task_toggled': {
+          const runtime = getRuntimeConfig(this.env);
+          const resolvedDate = resolveBoardDate(runtime.timezone, payload.date);
+
+          if (resolvedDate !== payload.date) {
+            throw new FamilyBoardStateError(
+              'Realtime requests cannot target a day beyond tomorrow.',
+            );
+          }
+
           await toggleTaskCompletion(this.env.DB, {
             familyId,
             taskId: payload.task_id,
-            date: payload.date,
+            date: resolvedDate,
             completed: payload.completed,
           });
 
           const state = await getFamilyBoardState(
             this.env.DB,
             familyId,
-            payload.date,
+            resolvedDate,
           );
           const update = toStateUpdate(state);
 
           for (const connection of this.ctx.getWebSockets()) {
-            if (getAttachedFamilyId(connection) !== familyId) {
+            const attachment = getSocketAttachment(connection);
+
+            if (attachment.familyId !== familyId) {
               continue;
             }
 
-            if (getAttachedDate(connection) !== payload.date) {
+            if (attachment.date !== resolvedDate) {
               continue;
             }
 

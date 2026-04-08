@@ -92,6 +92,7 @@ describe('FamilyBoard durable object', () => {
   beforeEach(() => {
     getFamilyBoardState.mockReset();
     toggleTaskCompletion.mockReset();
+    vi.useRealTimers();
   });
 
   it('responds to init with the current family board state', async () => {
@@ -205,6 +206,40 @@ describe('FamilyBoard durable object', () => {
 
     expect(todaySocket.sent).toHaveLength(1);
     expect(yesterdaySocket.sent).toHaveLength(0);
+  });
+
+  it('rejects realtime toggles beyond tomorrow before mutating state', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-08T14:15:00Z'));
+
+    const room = new FamilyBoard(
+      new FakeDurableObjectState() as never,
+      {
+        DB: {} as never,
+        TIMEZONE: 'America/New_York',
+      } as never,
+    );
+    const socket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-09',
+    });
+
+    await room.webSocketMessage(
+      socket as unknown as WebSocket,
+      JSON.stringify({
+        type: 'task_toggled',
+        date: '2026-04-15',
+        task_id: 'task-piano',
+        completed: true,
+      }),
+    );
+
+    expect(toggleTaskCompletion).not.toHaveBeenCalled();
+    expect(getFamilyBoardState).not.toHaveBeenCalled();
+    expect(socket.closed).toEqual({
+      code: 1008,
+      reason: 'Realtime requests cannot target a day beyond tomorrow.',
+    });
   });
 
   it('closes the socket on malformed client messages', async () => {

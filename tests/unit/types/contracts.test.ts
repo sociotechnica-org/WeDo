@@ -130,6 +130,14 @@ describe('shared type contracts', () => {
     ).toEqual({
       day: undefined,
     });
+
+    expect(
+      boardRequestQuerySchema.parse({
+        day: '2026-13-45',
+      }),
+    ).toEqual({
+      day: undefined,
+    });
   });
 
   it('accepts valid schedule rules and RFC 5545 day codes', () => {
