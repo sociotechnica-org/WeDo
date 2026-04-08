@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getBoardResponse } from '@/services/board-service';
-import { healthResponseSchema } from '@/types/health';
 import type { WorkerBindings } from '@/config/runtime';
+import { healthResponseSchema } from '@/types';
 
 type AppEnv = {
   Bindings: WorkerBindings;

@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  boardResponseSchema,
-  type BoardResponse,
-  type BoardSnapshot,
-} from '@/types/board';
+import { boardResponseSchema, type BoardResponse, type BoardSnapshot } from '@/types';
 
 type BoardSnapshotState =
   | { status: 'loading' }
