@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getRuntimeConfig } from '@/config/runtime';
+import { getRuntimeConfig, getTaskParserConfig } from '@/config/runtime';
 import {
   boardRequestQuerySchema,
   boardResponseSchema,
@@ -444,5 +444,24 @@ describe('shared type contracts', () => {
         TIMEZONE: 'America/New_York',
       }).timezone,
     ).toBe(defaultTimezone);
+  });
+
+  it('defaults task parsing to live mode and allows the local stub override', () => {
+    expect(
+      getTaskParserConfig({
+        ANTHROPIC_API_KEY: 'test-api-key',
+      }),
+    ).toEqual({
+      mode: 'live',
+      apiKey: 'test-api-key',
+    });
+
+    expect(
+      getTaskParserConfig({
+        TASK_PARSER_MODE: 'stub',
+      }),
+    ).toEqual({
+      mode: 'stub',
+    });
   });
 });

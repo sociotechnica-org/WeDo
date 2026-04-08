@@ -1,6 +1,6 @@
 import type { Hono } from 'hono';
 import { ZodError } from 'zod';
-import { getAnthropicApiKey, type WorkerBindings } from '@/config/runtime';
+import { getTaskParserConfig, type WorkerBindings } from '@/config/runtime';
 import { NlTaskParserError, parseNaturalLanguageTask } from '@/services/nl-parser';
 import {
   createTaskMutationSchema,
@@ -24,7 +24,7 @@ export function registerTaskRoutes(app: Hono<AppEnv>) {
         (await context.req.json()) as unknown,
       );
       const parsedTask = await parseNaturalLanguageTask(
-        getAnthropicApiKey(context.env),
+        getTaskParserConfig(context.env),
         requestBody.raw_input,
       );
       const mutation = createTaskMutationSchema.parse({

@@ -191,7 +191,10 @@ describe('workers app realtime route', () => {
 
     expect(response.status).toBe(201);
     expect(taskRouteMocks.parseNaturalLanguageTask).toHaveBeenCalledWith(
-      'test-api-key',
+      {
+        mode: 'live',
+        apiKey: 'test-api-key',
+      },
       'practice piano Monday Tuesday Thursday Friday',
     );
 
@@ -242,6 +245,150 @@ describe('workers app realtime route', () => {
     );
 
     expect(response.status).toBe(503);
+    await expect(response.text()).resolves.toBe(
+      'Task creation is temporarily unavailable.',
+    );
+  });
+
+  it('uses the configured stub parser mode for deterministic local e2e coverage', async () => {
+    taskRouteMocks.parseNaturalLanguageTask.mockResolvedValue({
+      title: 'Practice piano',
+      emoji: '🎹',
+      schedule_rules: {
+        days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
+      },
+    });
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/tasks', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          person_id: 'person-456',
+          raw_input: 'practice piano every day',
+          viewed_date: '2026-04-08',
+        }),
+      }),
+      {
+        TASK_PARSER_MODE: 'stub',
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn().mockReturnValue({
+            fetch: vi.fn().mockResolvedValue(
+              new Response(
+                JSON.stringify({
+                  task: {
+                    id: 'task-piano',
+                    family_id: 'family-123',
+                    person_id: 'person-456',
+                    title: 'Practice piano',
+                    emoji: '🎹',
+                    schedule_rules: {
+                      days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
+                    },
+                    created_at: '2026-04-08T12:00:00Z',
+                  },
+                  state: {
+                    family_id: 'family-123',
+                    day: {
+                      date: '2026-04-08',
+                      is_sunday: false,
+                    },
+                    people: [
+                      {
+                        person: {
+                          id: 'person-456',
+                          family_id: 'family-123',
+                          name: 'Jess',
+                          display_order: 0,
+                          emoji: '🌿',
+                        },
+                        streak: {
+                          person_id: 'person-456',
+                          current_count: 0,
+                          best_count: 0,
+                          last_qualifying_date: null,
+                        },
+                        skip_day: null,
+                        tasks: [
+                          {
+                            task: {
+                              id: 'task-piano',
+                              family_id: 'family-123',
+                              person_id: 'person-456',
+                              title: 'Practice piano',
+                              emoji: '🎹',
+                              schedule_rules: {
+                                days: [
+                                  'MO',
+                                  'TU',
+                                  'WE',
+                                  'TH',
+                                  'FR',
+                                  'SA',
+                                  'SU',
+                                ],
+                              },
+                              created_at: '2026-04-08T12:00:00Z',
+                            },
+                            completion: null,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                }),
+                {
+                  status: 201,
+                  headers: {
+                    'content-type': 'application/json',
+                  },
+                },
+              ),
+            ),
+          }),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(taskRouteMocks.parseNaturalLanguageTask).toHaveBeenCalledWith(
+      {
+        mode: 'stub',
+      },
+      'practice piano every day',
+    );
+  });
+
+  it('does not allow a request header to bypass live parsing mode', async () => {
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/tasks', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-wedo-task-parser-mode': 'stub',
+        },
+        body: JSON.stringify({
+          person_id: 'person-456',
+          raw_input: 'practice piano every day',
+          viewed_date: '2026-04-08',
+        }),
+      }),
+      {
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn(),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(503);
+    expect(taskRouteMocks.parseNaturalLanguageTask).not.toHaveBeenCalled();
     await expect(response.text()).resolves.toBe(
       'Task creation is temporarily unavailable.',
     );

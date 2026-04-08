@@ -42,7 +42,10 @@ describe('nl-parser service', () => {
 
     await expect(
       parseNaturalLanguageTask(
-        'test-api-key',
+        {
+          mode: 'live',
+          apiKey: 'test-api-key',
+        },
         'practice piano Monday Tuesday Thursday Friday',
       ),
     ).resolves.toEqual({
@@ -109,7 +112,13 @@ describe('nl-parser service', () => {
     );
 
     await expect(
-      parseNaturalLanguageTask('test-api-key', 'practice piano weekdays'),
+      parseNaturalLanguageTask(
+        {
+          mode: 'live',
+          apiKey: 'test-api-key',
+        },
+        'practice piano weekdays',
+      ),
     ).rejects.toThrow(NlTaskParserError);
   });
 
@@ -124,7 +133,47 @@ describe('nl-parser service', () => {
     );
 
     await expect(
-      parseNaturalLanguageTask('test-api-key', 'practice piano weekdays'),
+      parseNaturalLanguageTask(
+        {
+          mode: 'live',
+          apiKey: 'test-api-key',
+        },
+        'practice piano weekdays',
+      ),
     ).rejects.toThrow('Anthropic task parsing failed with 503');
+  });
+
+  it('supports the local stub parser mode for deterministic e2e task creation', async () => {
+    await expect(
+      parseNaturalLanguageTask(
+        {
+          mode: 'stub',
+        },
+        'practice piano every day',
+      ),
+    ).resolves.toEqual({
+      title: 'Practice piano',
+      emoji: '🎹',
+      schedule_rules: {
+        days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
+      },
+    });
+  });
+
+  it('keeps non-schedule words intact when deriving stub titles', async () => {
+    await expect(
+      parseNaturalLanguageTask(
+        {
+          mode: 'stub',
+        },
+        'turn on the lights every day',
+      ),
+    ).resolves.toEqual({
+      title: 'Turn on the lights',
+      emoji: '📝',
+      schedule_rules: {
+        days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
+      },
+    });
   });
 });

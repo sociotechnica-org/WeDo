@@ -39,5 +39,31 @@
   //   wrangler secret put ANTHROPIC_API_KEY
   "vars": {
     "HOUSEHOLD_NAME": "Maple House",
+    "TASK_PARSER_MODE": "live",
+  },
+  "env": {
+    "e2e": {
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "FAMILY_BOARD",
+            "class_name": "FamilyBoard"
+          }
+        ]
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "we-do",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "preview_database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "src/db/migrations"
+        }
+      ],
+      "vars": {
+        "HOUSEHOLD_NAME": "Maple House",
+        "TASK_PARSER_MODE": "stub",
+      },
+    },
   },
 }
