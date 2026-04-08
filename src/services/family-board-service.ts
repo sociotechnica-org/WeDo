@@ -7,6 +7,11 @@ import {
 } from '@/db/family-board-repository';
 import { type DatabaseClient } from '@/db/database';
 import {
+  getDayCodeForIsoDate,
+  getTasksForIsoDate,
+  isTaskScheduledForIsoDate,
+} from '@/services/recurrence';
+import {
   familyBoardStateSchema,
   isoTimestampSchema,
   type DayCode,
@@ -17,16 +22,6 @@ import {
   type Streak,
   type Task,
 } from '@/types';
-
-const dayCodeBySundayIndex = [
-  'SU',
-  'MO',
-  'TU',
-  'WE',
-  'TH',
-  'FR',
-  'SA',
-] as const satisfies ReadonlyArray<DayCode>;
 
 type BuildFamilyBoardStateInput = FamilyBoardSourceData & {
   familyId: string;
@@ -43,10 +38,6 @@ type ToggleTaskCompletionInput = {
 
 export class FamilyBoardStateError extends Error {}
 
-function getUtcDate(date: IsoDate): Date {
-  return new Date(`${date}T00:00:00Z`);
-}
-
 function getDefaultStreak(personId: string): Streak {
   return {
     person_id: personId,
@@ -57,24 +48,25 @@ function getDefaultStreak(personId: string): Streak {
 }
 
 export function getDayCodeForDate(date: IsoDate): DayCode {
-  return dayCodeBySundayIndex[getUtcDate(date).getUTCDay()] ?? 'SU';
+  return getDayCodeForIsoDate(date);
 }
 
 export function isTaskScheduledForDate(task: Task, date: IsoDate): boolean {
-  const dayCode = getDayCodeForDate(date);
-
-  return task.schedule_rules.days.includes(dayCode);
+  return isTaskScheduledForIsoDate(task.schedule_rules, date);
 }
 
 export function buildFamilyBoardState(
   input: BuildFamilyBoardStateInput,
 ): FamilyBoardState {
+  const scheduledTasks = getTasksForIsoDate(input.tasks, input.date);
   const peopleById = new Map<string, PersonDayState>();
   const streakByPersonId = new Map(
     input.streaks.map((streak) => [streak.person_id, streak] as const),
   );
   const completionByTaskId = new Map(
-    input.completions.map((completion) => [completion.task_id, completion] as const),
+    input.completions.map(
+      (completion) => [completion.task_id, completion] as const,
+    ),
   );
 
   const people = input.persons.map((person) => {
@@ -90,11 +82,7 @@ export function buildFamilyBoardState(
     return personState;
   });
 
-  for (const task of input.tasks) {
-    if (!isTaskScheduledForDate(task, input.date)) {
-      continue;
-    }
-
+  for (const task of scheduledTasks) {
     const personState = peopleById.get(task.person_id);
 
     if (!personState) {
@@ -117,7 +105,7 @@ export function buildFamilyBoardState(
     family_id: input.familyId,
     day: {
       date: input.date,
-      is_sunday: getDayCodeForDate(input.date) === 'SU',
+      is_sunday: getDayCodeForIsoDate(input.date) === 'SU',
     },
     people,
   });
@@ -157,7 +145,7 @@ export async function toggleTaskCompletion(
     );
   }
 
-  if (!isTaskScheduledForDate(task, input.date)) {
+  if (!isTaskScheduledForIsoDate(task.schedule_rules, input.date)) {
     throw new FamilyBoardStateError(
       `Task ${input.taskId} is not scheduled for ${input.date}.`,
     );
