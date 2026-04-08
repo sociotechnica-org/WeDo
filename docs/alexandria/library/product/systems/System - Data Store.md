@@ -56,7 +56,7 @@ The JSON `schedule_rules` column is intentionally flexible — the Anthropic API
 | person_id | Text | FK → persons |
 | title | Text | Task display name |
 | emoji | Text | Task emoji; required |
-| schedule_rules | JSON | Structured recurrence rules from NL parser |
+| schedule_rules | JSON | Structured recurrence rules from NL parser; format: `{ "days": ["MO"\|"TU"\|"WE"\|"TH"\|"FR"\|"SA"\|"SU"] }` using RFC 5545 day codes — see ADR 005 |
 | rollover_type | Text | Always "none" in v1 (no rollover) |
 | created_at | Timestamp | Creation time |
 

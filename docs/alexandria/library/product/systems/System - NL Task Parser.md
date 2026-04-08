@@ -46,7 +46,7 @@ Service calls Anthropic API (Sonnet 4.6) with tool_use definition
 API returns tool_use call with structured arguments:
   {
     title: "Practice piano",
-    schedule_rules: { days: ["monday","tuesday","thursday","friday"] },
+    schedule_rules: { "days": ["MO","TU","TH","FR"] },
     emoji: "🎹"
   }
                   ↓
@@ -59,8 +59,19 @@ D1 write: new tasks row with schedule_rules JSON, emoji
 
 The `tool_use` tool accepts:
 - `title` — cleaned task display name
-- `schedule_rules` — structured recurrence object (day-of-week array, or named pattern like `weekdays`, `daily`)
+- `schedule_rules` — structured recurrence object; day codes are RFC 5545 BYDAY values constrained by enum
 - `emoji` — single suggested emoji for the task
+
+The `input_schema` for `schedule_rules` in the tool_use definition (Zod):
+
+```typescript
+const DayCode = z.enum(["MO", "TU", "WE", "TH", "FR", "SA", "SU"]);
+const ScheduleRules = z.object({
+  days: z.array(DayCode).min(1).max(7),
+});
+```
+
+The enum constraint on `DayCode` means the Anthropic API cannot return an invalid day code — the tool_use call must conform to the schema or be rejected. This is the correctness guarantee defined in ADR 005.
 
 The tool definition is the contract between this system and [[System - Recurrence Engine]]. Both must agree on the `schedule_rules` schema.
 
@@ -70,9 +81,10 @@ The API resolves ambiguity before returning structured output. For edge cases (e
 
 ### Examples
 
-- Input: "morning chores every day" → `schedule_rules: { pattern: "daily" }` → Recurrence Engine applies Sunday exclusion at evaluation time
-- Input: "help with dinner on weekdays" → `schedule_rules: { days: ["monday","tuesday","wednesday","thursday","friday"] }`
-- Input: "Saturday yard work" → `schedule_rules: { days: ["saturday"] }`, emoji: "🌿"
+- Input: "morning chores every day" → `schedule_rules: { "days": ["MO","TU","WE","TH","FR","SA","SU"] }` → Recurrence Engine applies Sunday exclusion at evaluation time
+- Input: "help with dinner on weekdays" → `schedule_rules: { "days": ["MO","TU","WE","TH","FR"] }`
+- Input: "Saturday yard work" → `schedule_rules: { "days": ["SA"] }`, emoji: "🌿"
+- Input: "practice piano Monday, Tuesday, Thursday, Friday" → `schedule_rules: { "days": ["MO","TU","TH","FR"] }`, emoji: "🎹"
 
 ### Anti-Examples
 

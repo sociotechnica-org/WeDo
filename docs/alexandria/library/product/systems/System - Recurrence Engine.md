@@ -38,18 +38,31 @@ Enables: future support for non-recurring task types when those are added to the
 
 Given a target Day and a Person, the Recurrence Engine:
 1. Loads all active Schedules for that Person
-2. For each Schedule, evaluates whether the target Day matches the Schedule's recurrence rules
+2. For each Schedule, evaluates whether the target Day matches the `schedule_rules.days` array using RFC 5545 day codes
 3. If Sunday: no tasks are materialized regardless of rules
 4. Returns the set of Tasks that are active for that Person on that Day
 
 The engine does not carry state between days — each day evaluation is independent. Tasks that were not completed yesterday are not added to today's list (no rollover).
 
+### Evaluation Algorithm
+
+The core evaluation is zero-dependency, using the RFC 5545 day code lookup defined in ADR 005:
+
+```typescript
+const DAY_CODES = ["SU","MO","TU","WE","TH","FR","SA"] as const;
+function isTaskScheduledForDate(rules: { days: string[] }, date: Date): boolean {
+  return rules.days.includes(DAY_CODES[date.getDay()]);
+}
+```
+
+`date.getDay()` returns 0–6 (Sunday=0). `DAY_CODES` maps that index to the RFC 5545 code. The engine checks whether that code appears in `schedule_rules.days`.
+
 ### Examples
 
-- Schedule "Piano practice: Monday, Tuesday, Thursday, Friday" + target Day = Wednesday → task does not appear on Wednesday
-- Schedule "Morning chores: Monday–Saturday" + target Day = Sunday → no morning chores appear (Sunday exclusion)
-- Schedule "Micah's school tasks: Monday–Friday" + target Day = Monday → task appears; + target Day = Saturday → task does not appear
-- NL input "every weekday" → parsed to Monday–Friday recurrence pattern → engine evaluates against that pattern each day
+- `schedule_rules: { "days": ["MO","TU","TH","FR"] }` + target Day = Wednesday → `DAY_CODES[3]` = "WE" not in array → task does not appear
+- `schedule_rules: { "days": ["MO","TU","WE","TH","FR","SA"] }` + target Day = Sunday → Sunday exclusion rule fires → no tasks materialized
+- `schedule_rules: { "days": ["MO","TU","WE","TH","FR"] }` + target Day = Monday → "MO" in array → task appears
+- NL input "every weekday" → NL Task Parser returns `{ "days": ["MO","TU","WE","TH","FR"] }` → engine evaluates against that array each day
 
 ### Anti-Examples
 

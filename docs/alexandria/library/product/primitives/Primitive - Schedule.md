@@ -37,22 +37,25 @@ Known household schedule patterns:
 
 | Attribute | Type | Notes |
 |-----------|------|-------|
-| days_of_week | Day[] | Which days this schedule is active (e.g., [Mon, Tue, Wed, Thu, Fri]) |
+| schedule_rules | JSON | Structured recurrence rules: `{ days: ("MO"\|"TU"\|"WE"\|"TH"\|"FR"\|"SA"\|"SU")[] }` using RFC 5545 day codes (see ADR 005) |
 | exceptions | Exception[] | Override rules (future: travel weeks, one-off skips) |
 | nl_source | String | Original natural language input that created this schedule |
 | person | Person | Owner; schedule is scoped to one person |
 
+The `schedule_rules` format is defined in ADR 005. Day codes are the RFC 5545 BYDAY values: MO, TU, WE, TH, FR, SA, SU. Example: `{ "days": ["MO", "TU", "TH", "FR"] }`. The Zod schema enforces an enum constraint so invalid day codes cannot enter the system.
+
 ### Behavior
 
-- NL input → parsed into day-of-week array + any exception rules
+- NL input → NL Task Parser calls Anthropic API via tool_use → returns `schedule_rules` JSON with RFC 5545 day codes
 - Schedule evaluates against a target Day → returns Boolean (does this task appear today?)
 - Sunday is never active regardless of schedule rules (handled by Recurrence Engine + Day primitive)
 
 ### Examples
 
-- NL: "every weekday" → days_of_week = [Mon, Tue, Wed, Thu, Fri]
-- NL: "Monday, Wednesday, Friday" → days_of_week = [Mon, Wed, Fri]
-- NL: "Monday through Saturday" → days_of_week = [Mon, Tue, Wed, Thu, Fri, Sat]
+- NL: "every weekday" → `{ "days": ["MO", "TU", "WE", "TH", "FR"] }`
+- NL: "Monday, Wednesday, Friday" → `{ "days": ["MO", "WE", "FR"] }`
+- NL: "Monday through Saturday" → `{ "days": ["MO", "TU", "WE", "TH", "FR", "SA"] }`
+- NL: "practice piano Monday, Tuesday, Thursday, Friday" → `{ "days": ["MO", "TU", "TH", "FR"] }`
 - NL: "the Wednesday Micah has school" → complex case; may require exception handling or clarification prompt
 
 ### Anti-Examples
