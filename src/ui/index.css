@@ -1,0 +1,87 @@
+@import 'tailwindcss';
+
+:root {
+  --color-ink: #372f28;
+  --color-ink-soft: #6c5f54;
+  --color-paper: #f6f0e6;
+  --color-paper-deep: #efe5d8;
+}
+
+html {
+  color: var(--color-ink);
+  background: var(--color-paper);
+  font-family: 'Cormorant Garamond', 'Palatino Linotype', Georgia, serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 15% 20%,
+      rgba(135, 178, 158, 0.14),
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 82% 16%,
+      rgba(139, 169, 201, 0.16),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at 70% 72%,
+      rgba(202, 176, 151, 0.14),
+      transparent 30%
+    ),
+    linear-gradient(180deg, #f8f3ea 0%, #f2e9dc 100%);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(123, 101, 82, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(123, 101, 82, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at center, black 68%, transparent 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.paper-canvas {
+  position: relative;
+}
+
+.paper-panel {
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 253, 250, 0.88),
+      rgba(248, 242, 233, 0.88)
+    ),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.18), transparent 65%);
+  backdrop-filter: blur(10px);
+}
+
+.scribe-label {
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.watercolor-ring::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 9999px;
+  border: 1px dashed rgba(87, 72, 58, 0.18);
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: 15px;
+  }
+}

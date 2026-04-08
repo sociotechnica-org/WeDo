@@ -1,2 +1,13 @@
 .tmp/
 .var/
+.wrangler/
+coverage/
+dist/
+node_modules/
+playwright-report/
+test-results/
+tmp-c3/
+tmp-hono/
+tmp-react/
+tmp-vite/
+wrangler.json
