@@ -7,8 +7,11 @@ tracker:
   running_label: symphony:running
   failed_label: symphony:failed
   success_comment: Symphony completed this issue successfully.
-  review_bot_logins: []
-  reviewer_apps: {}
+  review_bot_logins:
+    - devin-ai-integration
+  reviewer_apps:
+    devin:
+      accepted: true
 polling:
   interval_ms: 30000
   max_concurrent_runs: 1
