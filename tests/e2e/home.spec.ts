@@ -269,3 +269,34 @@ test('deletes a task from the focused single-list view and removes it from the d
 
   await expect(page.getByText('Kitchen reset')).toHaveCount(0);
 });
+
+test('renders the watercolor prototype route at an iPad-sized landscape viewport', async ({
+  page,
+}) => {
+  await page.setViewportSize({
+    width: 1180,
+    height: 820,
+  });
+
+  await page.goto('/prototype/watercolor');
+
+  await expect(
+    page.getByRole('heading', { name: 'Household art, not software' }),
+  ).toBeVisible();
+  await expect(page.getByText('PROTO-001 watercolor study')).toBeVisible();
+  await expect(page.getByText('Storybook script')).toBeVisible();
+  await expect(page.getByText('Letterpress serif')).toBeVisible();
+  await expect(page.getByText('Field notes')).toBeVisible();
+  await expect(page.getByTestId('prototype-type-study')).toHaveCount(3);
+  await expect(page.getByTestId('prototype-person-column')).toHaveCount(6);
+  await expect(
+    page.getByTestId('watercolor-prototype-dashboard').getByText('Kitchen reset'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Back to dashboard' }),
+  ).toBeVisible();
+
+  const prototypeSurface = page.getByTestId('watercolor-prototype');
+  const prototypeStyles = await readComputedStyles(prototypeSurface);
+  expect(prototypeStyles.backgroundImage).not.toBe('none');
+});
