@@ -54,25 +54,28 @@ const board = familyBoardStateSchema.parse({
 
 describe('family-board-state helpers', () => {
   const toggleTask = () => true;
+  const todayDate = '2026-04-08' as const;
 
   it('creates a live ready state from the latest board snapshot', () => {
-    expect(createReadyFamilyBoardState(board, 'River House', toggleTask)).toEqual(
-      {
-        status: 'ready',
-        board,
-        householdName: 'River House',
-        realtime: {
-          status: 'live',
-        },
-        toggleTask,
+    expect(
+      createReadyFamilyBoardState(board, 'River House', todayDate, toggleTask),
+    ).toEqual({
+      status: 'ready',
+      board,
+      householdName: 'River House',
+      todayDate,
+      realtime: {
+        status: 'live',
       },
-    );
+      toggleTask,
+    });
   });
 
   it('preserves the last good board while marking realtime as degraded', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      todayDate,
       toggleTask,
     );
 
@@ -85,6 +88,7 @@ describe('family-board-state helpers', () => {
       status: 'ready',
       board,
       householdName: 'River House',
+      todayDate,
       realtime: {
         status: 'degraded',
         message: 'The board is still visible, but live updates are paused.',
@@ -97,6 +101,7 @@ describe('family-board-state helpers', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      todayDate,
       toggleTask,
     );
     const completedAt = '2026-04-08T12:00:00Z';
@@ -112,9 +117,9 @@ describe('family-board-state helpers', () => {
       date: '2026-04-08',
       completed_at: completedAt,
     });
-    expect(findTaskCompletionStatus(optimisticState!.board, 'task-kitchen')).toBe(
-      true,
-    );
+    expect(
+      findTaskCompletionStatus(optimisticState!.board, 'task-kitchen'),
+    ).toBe(true);
   });
 
   it('returns null when an optimistic toggle targets a missing task', () => {

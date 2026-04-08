@@ -4,6 +4,7 @@ import {
   serverWebSocketMessageSchema,
   type BoardResponse,
   type InitRequest,
+  type IsoDate,
   type ServerWebSocketMessage,
   type TaskToggledMessage,
 } from '@/types';
@@ -25,6 +26,16 @@ function buildSocketUrl(familyId: string): URL {
   return url;
 }
 
+function buildBoardUrl(requestedDay?: IsoDate): string {
+  const url = new URL('/api/board', window.location.origin);
+
+  if (requestedDay) {
+    url.searchParams.set('day', requestedDay);
+  }
+
+  return url.toString();
+}
+
 async function getMessageText(
   data: ArrayBuffer | Blob | string,
 ): Promise<string> {
@@ -39,7 +50,7 @@ async function getMessageText(
   return await data.text();
 }
 
-export function useFamilyBoard() {
+export function useFamilyBoard(requestedDay?: IsoDate) {
   const [state, setState] = useState<FamilyBoardViewState>({
     status: 'loading',
   });
@@ -53,76 +64,86 @@ export function useFamilyBoard() {
     setState(nextState);
   }, []);
 
-  const toggleTask = useCallback((taskId: string): boolean => {
-    const currentState = stateRef.current;
+  const toggleTask = useCallback(
+    (taskId: string): boolean => {
+      const currentState = stateRef.current;
 
-    if (currentState.status !== 'ready') {
-      return false;
-    }
+      if (currentState.status !== 'ready') {
+        return false;
+      }
 
-    const currentCompletion = findTaskCompletionStatus(currentState.board, taskId);
-
-    if (currentCompletion === null) {
-      return false;
-    }
-
-    const socket = socketRef.current;
-
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      commitState(
-        withRealtimeIssue(
-          currentState,
-          'The board is still visible, but live updates are paused.',
-        ),
+      const currentCompletion = findTaskCompletionStatus(
+        currentState.board,
+        taskId,
       );
 
-      return false;
-    }
+      if (currentCompletion === null) {
+        return false;
+      }
 
-    const completedAt = new Date().toISOString();
-    const optimisticState = withOptimisticTaskToggle(
-      currentState,
-      taskId,
-      completedAt,
-    );
+      const socket = socketRef.current;
 
-    if (!optimisticState) {
-      return false;
-    }
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        commitState(
+          withRealtimeIssue(
+            currentState,
+            'The board is still visible, but live updates are paused.',
+          ),
+        );
 
-    const message = {
-      type: 'task_toggled',
-      date: currentState.board.day.date,
-      task_id: taskId,
-      completed: !currentCompletion,
-    } satisfies TaskToggledMessage;
+        return false;
+      }
 
-    commitState(optimisticState);
-
-    try {
-      socket.send(JSON.stringify(message));
-      return true;
-    } catch {
-      commitState(
-        withRealtimeIssue(
-          currentState,
-          'The board is still visible, but live updates are paused.',
-        ),
+      const completedAt = new Date().toISOString();
+      const optimisticState = withOptimisticTaskToggle(
+        currentState,
+        taskId,
+        completedAt,
       );
-      return false;
-    }
-  }, [commitState]);
+
+      if (!optimisticState) {
+        return false;
+      }
+
+      const message = {
+        type: 'task_toggled',
+        date: currentState.board.day.date,
+        task_id: taskId,
+        completed: !currentCompletion,
+      } satisfies TaskToggledMessage;
+
+      commitState(optimisticState);
+
+      try {
+        socket.send(JSON.stringify(message));
+        return true;
+      } catch {
+        commitState(
+          withRealtimeIssue(
+            currentState,
+            'The board is still visible, but live updates are paused.',
+          ),
+        );
+        return false;
+      }
+    },
+    [commitState],
+  );
 
   useEffect(() => {
-    // This effect should mount the family socket once. If `commitState` or
-    // `toggleTask` become unstable, the connection would churn on re-render.
+    // Changing the requested day should rebuild the board snapshot against a
+    // fresh bootstrap + socket initialization for that exact date.
     const controller = new AbortController();
     let isDisposed = false;
     let hasInitialized = false;
 
+    commitState({
+      status: 'loading',
+    });
+
     async function connect() {
       try {
-        const bootstrapResponse = await fetch('/api/board', {
+        const bootstrapResponse = await fetch(buildBoardUrl(requestedDay), {
           signal: controller.signal,
         });
 
@@ -160,7 +181,9 @@ export function useFamilyBoard() {
             try {
               const payload = serverWebSocketMessageSchema.parse(
                 JSON.parse(
-                  await getMessageText(event.data as ArrayBuffer | Blob | string),
+                  await getMessageText(
+                    event.data as ArrayBuffer | Blob | string,
+                  ),
                 ) as ServerWebSocketMessage,
               );
 
@@ -174,6 +197,7 @@ export function useFamilyBoard() {
                 createReadyFamilyBoardState(
                   payload.state,
                   bootstrap.board.householdName,
+                  bootstrap.board.todayDate,
                   toggleTask,
                 ),
               );
@@ -264,7 +288,7 @@ export function useFamilyBoard() {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [commitState, toggleTask]);
+  }, [commitState, requestedDay, toggleTask]);
 
   return state;
 }

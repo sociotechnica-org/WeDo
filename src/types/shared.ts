@@ -9,9 +9,23 @@ export const identifierSchema = z
     message: 'Identifiers must not include leading or trailing whitespace.',
   });
 
+function isSemanticallyValidIsoDate(value: string): boolean {
+  const { year, month, day } = getIsoDateParts(value);
+  const date = createUtcDateFromIsoDateValue(value);
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
 export const isoDateSchema = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected an ISO calendar date (YYYY-MM-DD).');
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected an ISO calendar date (YYYY-MM-DD).')
+  .refine(isSemanticallyValidIsoDate, {
+    message: 'Expected a real ISO calendar date.',
+  });
 
 export const isoTimestampSchema = z
   .string()
@@ -20,15 +34,7 @@ export const isoTimestampSchema = z
     'Expected an ISO timestamp.',
   );
 
-export const dayCodeSchema = z.enum([
-  'MO',
-  'TU',
-  'WE',
-  'TH',
-  'FR',
-  'SA',
-  'SU',
-]);
+export const dayCodeSchema = z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']);
 
 export const scheduleRulesSchema = z
   .object({
@@ -43,6 +49,42 @@ export const scheduleRulesSchema = z
 export const defaultTimezone = 'America/New_York' as const;
 
 export const timezoneSchema = z.literal(defaultTimezone);
+
+function getIsoDateParts(value: string) {
+  const [year = 0, month = 1, day = 1] = value.split('-').map(Number);
+
+  return {
+    year,
+    month,
+    day,
+  };
+}
+
+function createUtcDateFromIsoDateValue(value: string): Date {
+  const { year, month, day } = getIsoDateParts(value);
+
+  return new Date(Date.UTC(year, month - 1, day, 12));
+}
+
+function createUtcDateFromIsoDate(value: IsoDate): Date {
+  return createUtcDateFromIsoDateValue(value);
+}
+
+export function addDaysToIsoDate(date: IsoDate, amount: number): IsoDate {
+  const nextDate = createUtcDateFromIsoDate(date);
+
+  nextDate.setUTCDate(nextDate.getUTCDate() + amount);
+
+  const year = nextDate.getUTCFullYear();
+  const month = `${nextDate.getUTCMonth() + 1}`.padStart(2, '0');
+  const day = `${nextDate.getUTCDate()}`.padStart(2, '0');
+
+  return isoDateSchema.parse(`${year}-${month}-${day}`);
+}
+
+export function compareIsoDates(left: IsoDate, right: IsoDate): number {
+  return left.localeCompare(right);
+}
 
 export type Identifier = z.infer<typeof identifierSchema>;
 export type IsoDate = z.infer<typeof isoDateSchema>;

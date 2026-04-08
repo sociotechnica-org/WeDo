@@ -1,4 +1,4 @@
-import type { FamilyBoardState, TaskCompletion } from '@/types';
+import type { FamilyBoardState, IsoDate, TaskCompletion } from '@/types';
 
 type RealtimeState =
   | { status: 'live' }
@@ -13,6 +13,7 @@ export type ReadyFamilyBoardViewState = {
   status: 'ready';
   board: FamilyBoardState;
   householdName: string;
+  todayDate: IsoDate;
   realtime: RealtimeState;
   toggleTask: ToggleTask;
 };
@@ -25,12 +26,14 @@ export type FamilyBoardViewState =
 export function createReadyFamilyBoardState(
   board: FamilyBoardState,
   householdName: string,
+  todayDate: IsoDate,
   toggleTask: ToggleTask,
 ): ReadyFamilyBoardViewState {
   return {
     status: 'ready',
     board,
     householdName,
+    todayDate,
     realtime: {
       status: 'live',
     },

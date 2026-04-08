@@ -5,9 +5,20 @@ import {
   type WorkerBindings,
 } from '@/config/runtime';
 import { getPrimaryFamilyId } from '@/db/board-repository';
-import { boardResponseSchema, type BoardResponse, type Timezone } from '@/types';
+import {
+  addDaysToIsoDate,
+  boardResponseSchema,
+  compareIsoDates,
+  type BoardResponse,
+  type IsoDate,
+  type Timezone,
+} from '@/types';
 
 type BoardServiceBindings = Pick<WorkerBindings, 'DB'> & RuntimeConfigBindings;
+type BoardResponseOptions = {
+  now?: Date;
+  requestedDate?: IsoDate;
+};
 
 export class BoardBootstrapError extends Error {}
 
@@ -26,12 +37,34 @@ export function getTodayForTimezone(
   }
 }
 
+export function resolveBoardDate(
+  timezone: Timezone,
+  requestedDate?: IsoDate,
+  now: Date = new Date(),
+): IsoDate {
+  const todayDate = getTodayForTimezone(timezone, now);
+
+  if (!requestedDate) {
+    return todayDate;
+  }
+
+  const tomorrowDate = addDaysToIsoDate(todayDate, 1);
+
+  if (compareIsoDates(requestedDate, tomorrowDate) > 0) {
+    return tomorrowDate;
+  }
+
+  return requestedDate;
+}
+
 export async function getBoardResponse(
   bindings: BoardServiceBindings,
-  now: Date = new Date(),
+  options: BoardResponseOptions = {},
 ): Promise<BoardResponse> {
   const runtime = getRuntimeConfig(bindings);
+  const now = options.now ?? new Date();
   const familyId = await getPrimaryFamilyId(bindings.DB);
+  const todayDate = getTodayForTimezone(runtime.timezone, now);
 
   if (!familyId) {
     throw new BoardBootstrapError(
@@ -43,7 +76,12 @@ export async function getBoardResponse(
     board: {
       familyId,
       householdName: runtime.householdName,
-      date: getTodayForTimezone(runtime.timezone, now),
+      date: resolveBoardDate(
+        runtime.timezone,
+        options.requestedDate,
+        now,
+      ),
+      todayDate,
     },
   });
 }

@@ -1,9 +1,11 @@
 import { DurableObject } from 'cloudflare:workers';
 import { z } from 'zod';
+import { getRuntimeConfig } from '@/config/runtime';
 import type { WorkerBindings } from '@/config/runtime';
 import {
   clientWebSocketMessageSchema,
   initResponseSchema,
+  isoDateSchema,
   stateUpdateMessageSchema,
 } from '@/types';
 import {
@@ -11,10 +13,12 @@ import {
   getFamilyBoardState,
   toggleTaskCompletion,
 } from '@/services/family-board-service';
+import { resolveBoardDate } from '@/services/board-service';
 
 const webSocketAttachmentSchema = z
   .object({
     familyId: z.string().min(1),
+    date: isoDateSchema.optional(),
   })
   .strict();
 
@@ -37,11 +41,20 @@ function getFamilyIdFromRequest(request: Request): string {
   return familyId;
 }
 
-function getAttachedFamilyId(socket: WebSocket): string {
-  return webSocketAttachmentSchema.parse(socket.deserializeAttachment()).familyId;
+function getSocketAttachment(socket: WebSocket) {
+  return webSocketAttachmentSchema.parse(socket.deserializeAttachment());
 }
 
-function toInitResponse(state: Awaited<ReturnType<typeof getFamilyBoardState>>): string {
+function attachSocketState(socket: WebSocket, familyId: string, date?: string) {
+  socket.serializeAttachment({
+    familyId,
+    date,
+  });
+}
+
+function toInitResponse(
+  state: Awaited<ReturnType<typeof getFamilyBoardState>>,
+): string {
   return JSON.stringify(
     initResponseSchema.parse({
       type: 'init_response',
@@ -50,7 +63,9 @@ function toInitResponse(state: Awaited<ReturnType<typeof getFamilyBoardState>>):
   );
 }
 
-function toStateUpdate(state: Awaited<ReturnType<typeof getFamilyBoardState>>): string {
+function toStateUpdate(
+  state: Awaited<ReturnType<typeof getFamilyBoardState>>,
+): string {
   return JSON.stringify(
     stateUpdateMessageSchema.parse({
       type: 'state_update',
@@ -76,7 +91,7 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
       throw new FamilyBoardStateError('Unable to create websocket pair.');
     }
 
-    server.serializeAttachment({ familyId });
+    attachSocketState(server, familyId);
     this.ctx.acceptWebSocket(server);
 
     return new Response(null, {
@@ -90,30 +105,60 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
     message: ArrayBuffer | string,
   ): Promise<void> {
     try {
-      const familyId = getAttachedFamilyId(socket);
+      const { familyId } = getSocketAttachment(socket);
       const payload = clientWebSocketMessageSchema.parse(
         JSON.parse(getMessageText(message)),
       );
 
       switch (payload.type) {
         case 'init': {
-          const state = await getFamilyBoardState(this.env.DB, familyId, payload.date);
+          const runtime = getRuntimeConfig(this.env);
+          const resolvedDate = resolveBoardDate(runtime.timezone, payload.date);
+          const state = await getFamilyBoardState(
+            this.env.DB,
+            familyId,
+            resolvedDate,
+          );
 
+          attachSocketState(socket, familyId, resolvedDate);
           socket.send(toInitResponse(state));
           return;
         }
         case 'task_toggled': {
+          const runtime = getRuntimeConfig(this.env);
+          const resolvedDate = resolveBoardDate(runtime.timezone, payload.date);
+
+          if (resolvedDate !== payload.date) {
+            throw new FamilyBoardStateError(
+              'Realtime requests cannot target a day beyond tomorrow.',
+            );
+          }
+
           await toggleTaskCompletion(this.env.DB, {
             familyId,
             taskId: payload.task_id,
-            date: payload.date,
+            date: resolvedDate,
             completed: payload.completed,
           });
 
-          const state = await getFamilyBoardState(this.env.DB, familyId, payload.date);
+          const state = await getFamilyBoardState(
+            this.env.DB,
+            familyId,
+            resolvedDate,
+          );
           const update = toStateUpdate(state);
 
           for (const connection of this.ctx.getWebSockets()) {
+            const attachment = getSocketAttachment(connection);
+
+            if (attachment.familyId !== familyId) {
+              continue;
+            }
+
+            if (attachment.date !== resolvedDate) {
+              continue;
+            }
+
             connection.send(update);
           }
         }

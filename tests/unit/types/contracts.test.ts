@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getRuntimeConfig } from '@/config/runtime';
 import {
+  boardRequestQuerySchema,
   boardResponseSchema,
   clientWebSocketMessageSchema,
   dayCodeSchema,
@@ -108,6 +109,7 @@ describe('shared type contracts', () => {
           familyId: 'family-maple',
           householdName: 'Maple House',
           date: '2026-04-07',
+          todayDate: '2026-04-08',
         },
       }),
     ).toEqual({
@@ -115,7 +117,26 @@ describe('shared type contracts', () => {
         familyId: 'family-maple',
         householdName: 'Maple House',
         date: '2026-04-07',
+        todayDate: '2026-04-08',
       },
+    });
+  });
+
+  it('normalizes invalid board query day values to an omitted day override', () => {
+    expect(
+      boardRequestQuerySchema.parse({
+        day: 'not-a-date',
+      }),
+    ).toEqual({
+      day: undefined,
+    });
+
+    expect(
+      boardRequestQuerySchema.parse({
+        day: '2026-13-45',
+      }),
+    ).toEqual({
+      day: undefined,
     });
   });
 
@@ -189,8 +210,12 @@ describe('shared type contracts', () => {
       state: exampleFamilyBoardState,
     } as const;
 
-    expect(clientWebSocketMessageSchema.parse(initRequest)).toEqual(initRequest);
-    expect(clientWebSocketMessageSchema.parse(taskToggled)).toEqual(taskToggled);
+    expect(clientWebSocketMessageSchema.parse(initRequest)).toEqual(
+      initRequest,
+    );
+    expect(clientWebSocketMessageSchema.parse(taskToggled)).toEqual(
+      taskToggled,
+    );
     expect(webSocketMessageSchema.parse(taskToggled)).toEqual(taskToggled);
     expect(initResponseSchema.parse(initResponse)).toEqual(initResponse);
     expect(serverWebSocketMessageSchema.parse(initResponse)).toEqual(

@@ -1,8 +1,13 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useSearchParams } from 'react-router-dom';
+import { boardRequestQuerySchema } from '@/types';
 import { useFamilyBoard } from '@/ui/hooks/use-family-board';
 
 export function BoardRoute() {
-  const boardState = useFamilyBoard();
+  const [searchParams] = useSearchParams();
+  const query = boardRequestQuerySchema.parse({
+    day: searchParams.get('day') ?? undefined,
+  });
+  const boardState = useFamilyBoard(query.day);
 
   if (boardState.status === 'loading') {
     return (
@@ -13,7 +18,7 @@ export function BoardRoute() {
           </p>
           <h1 className="mt-4 text-5xl text-[var(--color-ink)]">WeDo</h1>
           <p className="mt-4 text-lg text-[var(--color-ink-soft)]">
-            Pulling today&apos;s household page into view.
+            Pulling the household page into view.
           </p>
         </div>
       </main>
