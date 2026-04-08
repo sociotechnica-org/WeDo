@@ -8,7 +8,7 @@ Make WeDo deployable to a real Cloudflare environment with a reviewable, repo-ba
 
 This plan covers:
 - checked-in deployment configuration changes in `wrangler.jsonc` and supporting runtime/config files needed to distinguish local/e2e vs production deployment concerns
-- repeatable scripts or utilities to apply D1 migrations remotely and seed the Martin household into a remote D1 database without introducing a browser-side bootstrap path
+- repeatable scripts or utilities to apply D1 migrations remotely and seed the Martin household into a remote D1 database non-destructively without introducing a browser-side bootstrap path
 - checked-in PWA assets/metadata needed for standalone home-screen install on iPad
 - deployment documentation that explains secret setup, D1 database creation/binding, deploy commands, post-deploy validation, and known manual checks
 - automated tests for the new deployment/PWA/bootstrap seams where they are practical in-repo
@@ -58,7 +58,7 @@ Deferred follow-up seam if needed:
 1. Inspect the existing Wrangler/dev setup and decide how production config should be represented without committing real database IDs or secrets.
 2. Add a checked-in remote database bootstrap path that can:
    - apply D1 migrations to the bound remote database
-   - seed the Martin family dataset remotely in a repeatable way
+   - seed the Martin family dataset remotely in a repeatable, non-destructive way
    - avoid browser-initiated bootstrap or any violation of the D1 source-of-truth rule
 3. Harden deployment ergonomics in `package.json`/docs so operators have explicit commands for local vs remote migrate/seed/deploy flows.
 4. Add PWA install metadata and required static assets so the deployed site can be added to the iPad home screen in standalone mode.

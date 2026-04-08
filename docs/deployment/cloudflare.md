@@ -14,12 +14,12 @@ and one family-scoped Durable Object namespace.
 
 1. Create the shared remote D1 database:
    - `npm exec wrangler -- d1 create we-do`
-2. Copy the returned `database_id` into both D1 binding blocks in
+2. Copy the returned `database_id` into the top-level production D1 binding in
    `wrangler.jsonc`:
    - top-level `d1_databases[0].database_id`
    - top-level `d1_databases[0].preview_database_id`
-   - `env.e2e.d1_databases[0].database_id`
-   - `env.e2e.d1_databases[0].preview_database_id`
+   - the checked-in `env.e2e` placeholders can stay unchanged unless you also
+     intend to provision a separate remote e2e environment
 3. Upload the Anthropic API key:
    - `npm exec wrangler -- secret put ANTHROPIC_API_KEY`
 
@@ -31,6 +31,8 @@ and one family-scoped Durable Object namespace.
    - `npm run db:migrate:remote`
 3. Seed the Martin household into remote D1:
    - `npm run db:seed:remote`
+   - this bootstrap is non-destructive and only inserts the canonical Martin
+     household rows if they are missing
 4. Deploy the Worker and static assets:
    - `npm run deploy:prod`
 
@@ -69,5 +71,7 @@ If you need to inspect the preview database separately, use:
 - Real device validation for the iPad home-screen flow cannot be completed from
   this workspace.
 - The deploy scripts intentionally fail while `wrangler.jsonc` still contains
-  placeholder D1 IDs, so production deploys do not silently target invalid
-  bindings.
+  placeholder top-level production D1 IDs, so production deploys do not
+  silently target invalid bindings.
+- `npm run db:seed:remote` is safe to re-run as a bootstrap command, but it is
+  not a "reset production to seed state" tool.

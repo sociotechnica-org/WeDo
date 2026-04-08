@@ -247,6 +247,16 @@ function buildInsertStatement(
   ].join('\n');
 }
 
+export function buildBootstrapSeedSql(): string {
+  return [
+    buildInsertStatement('persons', martinFamilyPersons),
+    buildInsertStatement('tasks', martinFamilyTasks),
+    buildInsertStatement('streaks', martinFamilyStreaks),
+  ]
+    .filter((statement) => statement.length > 0)
+    .join('\n\n');
+}
+
 export function buildLocalSeedSql(): string {
   return [
     'DELETE FROM `task_completions`;',
@@ -254,9 +264,7 @@ export function buildLocalSeedSql(): string {
     'DELETE FROM `streaks`;',
     'DELETE FROM `skip_days`;',
     'DELETE FROM `persons`;',
-    buildInsertStatement('persons', martinFamilyPersons),
-    buildInsertStatement('tasks', martinFamilyTasks),
-    buildInsertStatement('streaks', martinFamilyStreaks),
+    buildBootstrapSeedSql(),
   ]
     .filter((statement) => statement.length > 0)
     .join('\n\n');

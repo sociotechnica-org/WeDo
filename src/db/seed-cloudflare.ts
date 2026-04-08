@@ -1,9 +1,14 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { buildLocalSeedSql, martinSeedData } from './seed';
+import {
+  buildBootstrapSeedSql,
+  buildLocalSeedSql,
+  martinSeedData,
+} from './seed';
 
 const thisFilePath = fileURLToPath(import.meta.url);
 const repoRoot = join(dirname(thisFilePath), '..', '..');
@@ -11,12 +16,32 @@ const repoRoot = join(dirname(thisFilePath), '..', '..');
 export const seedTargetValues = ['local', 'remote', 'preview'] as const;
 export type SeedTarget = (typeof seedTargetValues)[number];
 
-function getWranglerExecutable(): string {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+function getLocalWranglerPath(): string {
+  return join(
+    repoRoot,
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? 'wrangler.cmd' : 'wrangler',
+  );
 }
 
-function buildWranglerCommand(args: string[]): string[] {
-  return ['exec', 'wrangler', '--', ...args];
+export function buildWranglerCommand(args: string[]): {
+  args: string[];
+  command: string;
+} {
+  const localWranglerPath = getLocalWranglerPath();
+
+  if (existsSync(localWranglerPath)) {
+    return {
+      command: localWranglerPath,
+      args,
+    };
+  }
+
+  return {
+    command: process.platform === 'win32' ? 'npm.cmd' : 'npm',
+    args: ['exec', 'wrangler', '--', ...args],
+  };
 }
 
 function isSeedTarget(value: string): value is SeedTarget {
@@ -77,9 +102,14 @@ export function buildWranglerSeedArgs(
   return ['d1', 'execute', 'DB', locationFlag, '--file', sqlFilePath, '--yes'];
 }
 
+export function buildSeedSqlForTarget(target: SeedTarget): string {
+  return target === 'local' ? buildLocalSeedSql() : buildBootstrapSeedSql();
+}
+
 async function runWrangler(args: string[]): Promise<void> {
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(getWranglerExecutable(), buildWranglerCommand(args), {
+    const invocation = buildWranglerCommand(args);
+    const child = spawn(invocation.command, invocation.args, {
       cwd: repoRoot,
       stdio: 'inherit',
     });
@@ -103,7 +133,7 @@ export async function seedCloudflareDatabase(
   const sqlFile = join(tempDir, 'seed.sql');
 
   try {
-    await writeFile(sqlFile, buildLocalSeedSql(), 'utf8');
+    await writeFile(sqlFile, buildSeedSqlForTarget(target), 'utf8');
     await runWrangler(buildWranglerSeedArgs(sqlFile, target));
 
     process.stdout.write(

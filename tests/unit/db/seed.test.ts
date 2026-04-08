@@ -11,6 +11,7 @@ import {
   type Task,
 } from '@/types';
 import {
+  buildBootstrapSeedSql,
   martinFamilyId,
   martinFamilyPersons,
   martinFamilyStreaks,
@@ -115,6 +116,53 @@ describe('db seed data', () => {
 const describeNodeSqlite = DatabaseSync ? describe : describe.skip;
 
 describeNodeSqlite('db seed SQL path', () => {
+  it('provides a non-destructive bootstrap SQL path for remote D1', () => {
+    const Database = DatabaseSync;
+
+    if (!Database) {
+      throw new Error('node:sqlite is unavailable in this runtime.');
+    }
+
+    const db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    applyMigration(db);
+
+    db.exec(`
+      INSERT INTO persons (
+        id,
+        family_id,
+        name,
+        display_order,
+        emoji
+      ) VALUES (
+        'other-person',
+        'other-family',
+        'Neighbor',
+        0,
+        '🏠'
+      );
+    `);
+
+    const seedSql = buildBootstrapSeedSql();
+
+    expect(seedSql).not.toContain('DELETE FROM');
+
+    db.exec(seedSql);
+    db.exec(seedSql);
+
+    const personCount = db
+      .prepare('SELECT COUNT(*) AS count FROM persons')
+      .get() as { count: number };
+    const martinPersonCount = db
+      .prepare(
+        'SELECT COUNT(*) AS count FROM persons WHERE family_id = ?',
+      )
+      .get(martinFamilyId) as { count: number };
+
+    expect(personCount.count).toBe(martinFamilyPersons.length + 1);
+    expect(martinPersonCount.count).toBe(martinFamilyPersons.length);
+  });
+
   it('provides a runnable SQL seed path that is idempotent for local D1', () => {
     const Database = DatabaseSync;
 
