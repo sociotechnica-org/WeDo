@@ -14,14 +14,14 @@ export function DashboardRoute() {
 
   return (
     <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
-      <div className="mx-auto flex max-w-[90rem] flex-col gap-5">
-        <header className="paper-panel rounded-[2.2rem] border border-[rgba(87,72,58,0.08)] px-5 py-5 shadow-[0_18px_36px_rgba(82,65,48,0.06)] md:px-7 lg:px-8">
+      <div className="mx-auto flex max-w-[92rem] flex-col gap-6">
+        <header className="paper-sheet rounded-[2.8rem] border border-[rgba(107,90,75,0.08)] px-5 py-5 md:px-7 md:py-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr] md:items-center">
             <div>
               <p className="scribe-label text-[0.68rem] uppercase tracking-[0.38em] text-[var(--color-ink-soft)]">
                 Shared family board
               </p>
-              <h1 className="mt-2 text-5xl leading-none text-[var(--color-ink)] lg:text-6xl">
+              <h1 className="hand-title mt-2 text-[4.8rem] leading-[0.88] text-[var(--color-ink)] lg:text-[5.8rem]">
                 WeDo
               </h1>
               <p className="mt-3 text-[0.98rem] leading-6 text-[var(--color-ink-soft)] lg:max-w-sm">
@@ -39,7 +39,7 @@ export function DashboardRoute() {
 
             <div className="justify-self-start md:justify-self-end">
               <Link
-                className="inline-flex rounded-full border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.66)] px-4 py-2 text-sm tracking-[0.14em] text-[var(--color-ink-soft)] shadow-[0_10px_24px_rgba(82,65,48,0.04)]"
+                className="stationery-link px-5 py-2.5 text-[1.1rem] text-[var(--color-ink)]"
                 to={buildDayHref('/settings', board.day.date, todayDate)}
               >
                 Settings
@@ -56,7 +56,7 @@ export function DashboardRoute() {
           {board.people.map((personState, index) => (
             <Link
               aria-label={`Open ${personState.person.name}'s list`}
-              className="block rounded-[1.9rem] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(87,72,58,0.24)]"
+              className="block rounded-[2.25rem] transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(93,151,206,0.24)]"
               data-testid="person-column-link"
               key={personState.person.id}
               to={buildDayHref(

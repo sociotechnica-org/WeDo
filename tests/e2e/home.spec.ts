@@ -38,15 +38,14 @@ test('renders the realtime household dashboard with seeded family data', async (
   await expect(page.getByRole('button', { name: 'Add task' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Jess' })).toBeVisible();
   await expect(page).toHaveURL(/people\/[^/?]+\?day=/);
-  const progressText = page.getByText(
-    /^[01] of 1 tasks marked for this day\.$/,
-  );
+  const progressText = page.getByText('Tap any line to wash it blue.');
   await expect(progressText).toBeVisible();
-  const initialProgress = await progressText.textContent();
 
   await page.getByRole('button', { name: 'Toggle Kitchen reset' }).click();
 
-  await expect(progressText).not.toHaveText(initialProgress ?? '');
+  await expect(
+    page.getByText('Everything on this page is resting in blue.'),
+  ).toBeVisible();
 
   await page.getByRole('link', { name: 'Back' }).click();
 
@@ -174,7 +173,7 @@ test('creates a task from natural language in the focused single-list view', asy
   ).toBeVisible();
   await expect(page.getByText('Practice piano')).toBeVisible();
   await expect(
-    page.getByText('0 of 2 tasks marked for this day.'),
+    page.getByText('Tap any line to wash it blue.'),
   ).toBeVisible();
 });
 
@@ -279,7 +278,7 @@ test('deletes a task from the focused single-list view and removes it from the d
   await expect(page.getByText('Kitchen reset')).toHaveCount(0);
   await expect(page.getByText('No tasks for this day.')).toBeVisible();
   await expect(
-    page.getByText('0 of 0 tasks marked for this day.'),
+    page.getByText('No tasks resting on this page today.'),
   ).toBeVisible();
 
   await page.getByRole('link', { name: 'Back' }).click();
