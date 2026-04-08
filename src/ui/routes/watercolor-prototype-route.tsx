@@ -2,10 +2,11 @@ import { Link } from 'react-router-dom';
 import { WatercolorPrototype } from '@/ui/components/watercolor-prototype';
 import { RealtimeStatusBanner } from '@/ui/components/realtime-status-banner';
 import { buildDayHref } from '@/ui/lib/day-navigation';
-import { useReadyBoard } from '@/ui/routes/use-ready-board';
+import { useReadyBoardSnapshot } from '@/ui/routes/use-ready-board';
 
 export function WatercolorPrototypeRoute() {
-  const { board, householdName, realtime, todayDate } = useReadyBoard();
+  const { board, householdName, realtime, todayDate } =
+    useReadyBoardSnapshot();
 
   return (
     <main className="prototype-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">

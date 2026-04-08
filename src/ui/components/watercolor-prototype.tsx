@@ -1,5 +1,10 @@
 import { useId, type CSSProperties } from 'react';
-import type { FamilyBoardState, PersonDayState, TaskInstance } from '@/types';
+import type {
+  FamilyBoardState,
+  PersonDayState,
+  TaskCompletion,
+  TaskInstance,
+} from '@/types';
 import { formatDayLabel } from '@/ui/lib/format-day-label';
 import { getPersonPalette } from './person-palette';
 
@@ -75,7 +80,10 @@ function buildTypeStudies(board: FamilyBoardState): TypeStudy[] {
   ];
 }
 
-function createPrototypeCompletion(task: TaskInstance, date: string) {
+function createPrototypeCompletion(
+  task: TaskInstance,
+  date: string,
+): TaskCompletion {
   return {
     id: `prototype-completion-${task.task.id}`,
     task_id: task.task.id,

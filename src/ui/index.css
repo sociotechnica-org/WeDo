@@ -422,7 +422,7 @@ body::after {
 
   .prototype-sheet__title {
     margin: 0.7rem 0 0;
-    font-family: 'Bradley Hand', 'Marker Felt', 'Segoe Print', cursive;
+    font-family: var(--font-hand);
     font-size: clamp(2.8rem, 5vw, 4.8rem);
     line-height: 0.92;
     letter-spacing: -0.06em;
@@ -457,8 +457,7 @@ body::after {
 
   .prototype-sheet__legend-title {
     margin: 0;
-    font-family:
-      'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    font-family: var(--font-letterpress);
     font-size: 1rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -515,20 +514,20 @@ body::after {
   }
 
   .prototype-type-study__sample--storybook {
-    font-family: 'Bradley Hand', 'Marker Felt', 'Segoe Print', cursive;
+    font-family: var(--font-hand);
     letter-spacing: -0.05em;
   }
 
   .prototype-type-study__sample--letterpress {
-    font-family:
-      'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    font-family: var(--font-letterpress);
     font-style: italic;
     letter-spacing: -0.03em;
   }
 
   .prototype-type-study__sample--field-notes {
-    font-family: 'Chalkboard SE', 'Marker Felt', 'Segoe Print', cursive;
-    letter-spacing: -0.04em;
+    font-family: var(--font-hand);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
 
   .prototype-type-study__task {
@@ -537,19 +536,18 @@ body::after {
   }
 
   .prototype-type-study__task--storybook {
-    font-family:
-      'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    font-family: var(--font-letterpress);
     font-size: 1.05rem;
   }
 
   .prototype-type-study__task--letterpress {
-    font-family: 'Book Antiqua', 'Palatino Linotype', Georgia, serif;
+    font-family: var(--font-letterpress);
     font-size: 1.08rem;
     letter-spacing: 0.01em;
   }
 
   .prototype-type-study__task--field-notes {
-    font-family: 'Chalkboard SE', 'Marker Felt', 'Segoe Print', cursive;
+    font-family: var(--font-hand);
     font-size: 1.02rem;
   }
 
