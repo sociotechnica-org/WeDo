@@ -28,6 +28,8 @@
     "src",
     "tests",
     "vite.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "worker.ts",
+    "worker-configuration.d.ts"
   ]
 }

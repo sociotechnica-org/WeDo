@@ -3,7 +3,15 @@
   "name": "we-do",
   "compatibility_date": "2026-04-08",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "./src/workers/index.ts",
+  "main": "./worker.ts",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "FAMILY_BOARD",
+        "class_name": "FamilyBoard"
+      }
+    ]
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -12,6 +20,12 @@
       "database_id": "00000000-0000-0000-0000-000000000000",
       "preview_database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "src/db/migrations"
+    }
+  ],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["FamilyBoard"]
     }
   ],
   "assets": {
