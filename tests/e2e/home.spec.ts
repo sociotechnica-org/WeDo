@@ -57,6 +57,15 @@ test('renders the realtime household dashboard with seeded family data', async (
   await expect(page).toHaveURL(/\/$/);
   await expect(dayLabel).toHaveText(initialDayLabel ?? '');
 
+  await page.getByRole('link', { name: "Open Jess's list" }).click();
+  await page.getByRole('button', { name: 'Toggle Kitchen reset' }).click();
+  await page.getByRole('link', { name: 'Back' }).click();
+
+  const jessColumn = page.getByTestId('person-column').filter({
+    has: page.getByRole('heading', { name: 'Jess' }),
+  });
+  await expect(jessColumn.getByText('1 day streak')).toBeVisible();
+
   await page.getByTestId('day-nav-next').click();
   await expect(page).toHaveURL(/day=/);
   await expect(page.getByTestId('day-nav-next')).toBeDisabled();

@@ -102,6 +102,7 @@ export const streaksTable = sqliteTable(
     current_count: integer('current_count').notNull(),
     best_count: integer('best_count').notNull(),
     last_qualifying_date: text('last_qualifying_date'),
+    evaluated_through_date: text('evaluated_through_date'),
   },
   (table) => [
     check(

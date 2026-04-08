@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -23,19 +23,25 @@ const projectRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '../../..',
 );
-const initialMigrationSql = readFileSync(
-  resolve(projectRoot, 'src/db/migrations/0000_stormy_moira_mactaggert.sql'),
-  'utf8',
-);
+const migrationSqlFiles = readdirSync(resolve(projectRoot, 'src/db/migrations'))
+  .filter((entry) => entry.endsWith('.sql'))
+  .sort();
 const nodeSqliteModule = await import('node:sqlite').catch(() => null);
 const DatabaseSync = nodeSqliteModule?.DatabaseSync ?? null;
 
 function applyMigration(db: { exec: (sql: string) => void }): void {
-  for (const statement of initialMigrationSql
-    .split('--> statement-breakpoint')
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0)) {
-    db.exec(statement);
+  for (const migrationFile of migrationSqlFiles) {
+    const migrationSql = readFileSync(
+      resolve(projectRoot, 'src/db/migrations', migrationFile),
+      'utf8',
+    );
+
+    for (const statement of migrationSql
+      .split('--> statement-breakpoint')
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0)) {
+      db.exec(statement);
+    }
   }
 }
 
