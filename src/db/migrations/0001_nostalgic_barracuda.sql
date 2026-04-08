@@ -1,0 +1,1 @@
+ALTER TABLE `streaks` ADD `evaluated_through_date` text;

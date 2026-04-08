@@ -100,7 +100,9 @@ export async function getFamilyBoardSourceData(
             ),
           );
 
-  const completions = completionRows.map((row) => taskCompletionSchema.parse(row));
+  const completions = completionRows.map((row) =>
+    taskCompletionSchema.parse(row),
+  );
 
   const [skipDayRow] = await db
     .select()
@@ -114,7 +116,12 @@ export async function getFamilyBoardSourceData(
     personIds.length === 0
       ? []
       : await db
-          .select()
+          .select({
+            person_id: streaksTable.person_id,
+            current_count: streaksTable.current_count,
+            best_count: streaksTable.best_count,
+            last_qualifying_date: streaksTable.last_qualifying_date,
+          })
           .from(streaksTable)
           .where(inArray(streaksTable.person_id, personIds));
 
@@ -208,6 +215,9 @@ export async function removeTaskCompletion(
   await db
     .delete(taskCompletionsTable)
     .where(
-      and(eq(taskCompletionsTable.task_id, taskId), eq(taskCompletionsTable.date, date)),
+      and(
+        eq(taskCompletionsTable.task_id, taskId),
+        eq(taskCompletionsTable.date, date),
+      ),
     );
 }

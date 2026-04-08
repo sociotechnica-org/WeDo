@@ -14,6 +14,10 @@ import {
   isTaskScheduledForIsoDate,
 } from '@/services/recurrence';
 import {
+  getFamilyBoardStreaks,
+  syncFamilyCurrentStreaks,
+} from '@/services/streak';
+import {
   familyBoardStateSchema,
   isoTimestampSchema,
   type DayCode,
@@ -129,9 +133,11 @@ export async function getFamilyBoardState(
   date: IsoDate,
 ): Promise<FamilyBoardState> {
   const source = await getFamilyBoardSourceData(client, familyId, date);
+  const streaks = await getFamilyBoardStreaks(client, familyId, date);
 
   return buildFamilyBoardState({
     ...source,
+    streaks,
     familyId,
     date,
   });
@@ -199,8 +205,9 @@ export async function toggleTaskCompletion(
       date: input.date,
       completedAt: getCompletedAtTimestamp(input.completedAt),
     });
-    return;
+  } else {
+    await removeTaskCompletion(client, input.taskId, input.date);
   }
 
-  await removeTaskCompletion(client, input.taskId, input.date);
+  await syncFamilyCurrentStreaks(client, input.familyId);
 }
