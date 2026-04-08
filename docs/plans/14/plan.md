@@ -2,44 +2,43 @@
 
 ## Goal
 
-Implement FEAT-014 so every visible WeDo UI surface reads as letterpress stationery rather than software, with a consistent watercolor / handwritten treatment across Dashboard View, Single List View, Day Navigation, Settings, and the board shell states that frame those screens.
+Close the remaining FEAT-014 rework items on PR `#31` so the shared watercolor UI system behaves correctly under Tailwind's cascade layers and stays aligned with the handwritten typography constraints in `Standard - Visual Language`.
 
 ## Scope
 
-This PR includes:
+This rework update includes:
 
-- a checked-in implementation plan for issue `#14`
-- a shared visual-system pass in `src/ui/` covering typography, palette tokens, paper/background treatment, and reusable handcrafted controls
-- updated Dashboard View, Person Column, Completion Ring, and Task Row styling to better match the approved watercolor direction
-- updated Single List View styling, including focused header, task rows, Add Task affordance, and composer styling
-- updated Day Navigation and Settings styling so they feel like the same physical artifact, not separate utility chrome
-- updated loading / error / empty utility states in the board shell so no visible surface falls back to generic software styling
-- regression tests for route rendering and component markup where the visual contract is encoded in DOM output
+- an updated checked-in implementation plan for issue `#14` that matches the current PR seam
+- a CSS cascade-layer fix in `src/ui/index.css` for reusable stationery / handwritten helper classes so Tailwind state utilities can override them predictably
+- day-navigation styling fixes for the disabled next arrow and pressed skip toggle so those states are visibly distinct in the browser
+- handwritten typography weight adjustments where FEAT-014 introduced bold treatments that conflict with the visual-language standard
+- regression coverage focused on browser-observable styles for the affected day-navigation states
 
 ## Non-Goals
 
-This PR does not include:
+This rework update does not include:
 
-- schema, service, Worker, or Durable Object changes
-- changes to task, skip-day, streak, or realtime semantics
-- adding new visible features beyond the aesthetic pass already implied by existing flows
+- reopening the broader FEAT-014 restyling work that is already on the branch unless a fix is required for the reported regressions
+- schema, service, Worker, Durable Object, or API changes
+- changes to task, skip-day, streak, navigation, or realtime semantics
+- new visible features beyond making the existing watercolor states render correctly
 - introducing a UI component library or replacing the current React / Tailwind stack
-- perfectionist visual animation work beyond what is needed to support the watercolor / letterpress feel
 
 ## Current Context And Gaps
 
-- The current UI already has a warm paper palette and custom surfaces, but several visible elements still read as styled software controls instead of stationery: squared checkbox fills, standard button silhouettes, dense header cards, and numeric completion copy in the focused view.
+- The FEAT-014 branch already applied the winning watercolor direction across the main board flows, and the remaining work is now review-driven cleanup rather than a fresh design pass.
 - `Standard - Visual Language` requires handwritten / letterpress typography, watercolor completion treatment, sketched controls, warm off-white paper, and avoidance of default OS control styling across the app.
 - `Experience Goal - Ambient Calm` makes two constraints testable for this slice: the board should feel like household art, and the dashboard should stay legible from across the room without alarm colors or dense chrome.
-- The ticket and prototype wireframes point toward a lighter, more spacious composition than the current card-heavy layout, so the work should simplify and unify existing surfaces rather than layering more decorative widgets on top.
-- PR review on `#31` identified a narrow follow-up seam inside this same slice: disabled stationery controls need stricter disabled-state styling, the focused single-list view needs visible progress counts restored, and per-person palettes need distinct watercolor tints instead of a shared wash.
+- PR review on `#31` identified the concrete regressions to close in this pass:
+  - reusable classes such as `.stationery-link` and `.stationery-button` are declared outside any Tailwind cascade layer, so utility classes on disabled and pressed states are being overridden by unlayered CSS
+  - the disabled next-day arrow and pressed skip toggle in `DayNavigation` therefore lose their intended state styling in the browser
+  - `.hand-title` and `.hand-link` use `font-weight: 700`, which conflicts with the visual-language requirement to keep handwritten display text light-to-regular rather than bold
 - The repo expects a Bridget briefing, but there is no Bridget tool and no checked-in `CONTEXT_BRIEFING.md` in this workspace. For this slice, the Alexandria cards, checked-in FEAT-014 ticket doc, prototype wireframes in `docs/alexandria/sources/`, and repo code are the available context briefing source.
 
 ## Affected Layers And Boundaries
 
-- `src/ui/`: owns the entire slice, including CSS tokens, reusable presentational components, route layout, and view-level visual composition
-- `tests/unit/ui/`: owns DOM-level regression checks for the visible contract that can be asserted without a browser
-- `tests/e2e/`: owns end-to-end flow coverage for the main visible surfaces after the visual pass
+- `src/ui/`: owns the CSS helper classes and `DayNavigation` state styling in scope for this rework
+- `tests/e2e/`: owns the browser-level regression checks because the reported bugs are cascade and computed-style problems, not just DOM-shape problems
 
 Boundary rules preserved:
 
@@ -49,25 +48,22 @@ Boundary rules preserved:
 
 ## Slice Strategy
 
-This PR lands one reviewable seam: "replace the remaining software-like visible UI with a consistent watercolor / letterpress presentation across the existing v1 board flows." That seam is reviewable on its own because it stays in the presentational layer, uses the already-built task / board behavior, and can be judged against the checked-in visual language spec plus browser QA.
+This rework lands one reviewable seam: "make the FEAT-014 watercolor helper styles cooperate correctly with Tailwind utilities and handwritten typography constraints." That seam is reviewable on its own because it stays entirely in the presentational layer, preserves the already-shipped interaction semantics, and can be judged directly against the checked-in visual-language standard plus browser QA.
 
 Deliberately deferred:
 
-- any post-v1 animation or celebration experiments beyond subtle completion-state polish
-- bespoke iPad-only fullscreen or kiosk-mode work outside the current routed app shell
-- copy changes that are unrelated to the aesthetic spec
+- any additional FEAT-014 polish outside the reported review items
+- post-v1 animation or celebration experiments
+- broader visual exploration that is not needed to fix the PR regressions
 
 ## Implementation Steps
 
-1. Add `docs/plans/14/plan.md` and keep implementation aligned with the UI-only visual-system seam.
-2. Refine shared CSS tokens and paper textures in `src/ui/index.css`, introducing clearer typography roles and reusable handcrafted surface styles where needed.
-3. Update `CompletionRing`, `TaskRow`, and `PersonColumn` so rings feel watercolor, checkboxes feel sketched, completed state uses a blue wash, and dashboard columns breathe more like the prototype direction.
-4. Update `DayNavigation` so arrows, day label, and skip-day control match the same handwritten / stationery system and skipped-day dimming looks intentional rather than disabled.
-5. Update `DashboardRoute`, `SingleListRoute`, and `SettingsRoute` headers and section layouts to reduce generic card chrome, unify the board framing, and keep utility screens visually consistent with the main experience.
-6. Update board-shell loading / error / not-found states so no visible screen falls back to generic app-shell styling.
-7. Add or update unit and end-to-end assertions that cover the main visible contract changes without overfitting to incidental class names.
-8. Address actionable PR feedback within the same UI seam by tightening disabled stationery CSS behavior, restoring visible focused-list counts, and reintroducing distinct per-person wash/mist values.
-9. Verify the result in local Chrome through Playwright at an iPad-like landscape viewport, then run required checks and review the diff for any remaining default-control drift.
+1. Update `docs/plans/14/plan.md` so the plan matches the current PR rework seam and validation strategy.
+2. Move the reusable handwritten / stationery helper classes in `src/ui/index.css` into an explicit Tailwind layer so utility classes can win when a component needs state-specific overrides.
+3. Lower handwritten font weights in the shared typography helpers to a regular-weight treatment that stays readable but complies with `Standard - Visual Language`.
+4. Tighten `DayNavigation` state classes so the disabled next arrow and pressed skip toggle replace the neutral stationery background with visible state-specific treatments.
+5. Add browser-level regression assertions in `tests/e2e/home.spec.ts` that verify the computed visual states of the disabled arrow and pressed skip toggle after navigation and skip toggling.
+6. Verify the result in local Chrome through Playwright at an iPad-like landscape viewport, then run the required checks and review the diff for any remaining cascade-layer conflicts.
 
 ## Tests And Acceptance Scenarios
 
@@ -75,39 +71,41 @@ Required checks for this slice:
 
 - `npm run typecheck`
 - `npm run lint`
-- `npm run test`
 - `npm run test:e2e`
 - `npm run test:struct`
+
+Additional validation:
+
+- `npm run test` to ensure the existing unit coverage still passes after the shared CSS helper changes
 
 Visual verification:
 
 - open the local app in Chrome via Playwright at an iPad-like landscape viewport
-- confirm the dashboard is legible from a distance, with no alarm colors and no visually dominant software chrome
-- confirm the focused single-list view and Settings screen feel like the same artifact family as the dashboard rather than generic form screens
+- confirm the disabled next-day arrow reads as intentionally unavailable rather than like an active stationery control
+- confirm the pressed skip toggle takes on a visible blue-wash state distinct from the neutral stationery button style
+- confirm handwritten headings still read calmly and legibly without bold system-weight emphasis
 
 Acceptance scenarios:
 
-- Dashboard View shows person columns, task rows, and completion rings with a clearly handcrafted watercolor / letterpress treatment
-- Single List View uses the same system at a larger scale, with calm completion feedback and a non-generic Add Task affordance
-- Day Navigation and skip-day styling feel integrated with the board instead of like separate utility widgets
-- Settings remains lighter-weight than the main board but still avoids default software styling
-- loading, error, empty, and not-found states remain visually consistent with the product aesthetic
-- no visible default browser form controls or OS-like checkbox / progress primitives remain in the main UI
+- navigating from today to tomorrow disables the next-day arrow with a visibly muted background, text color, and shadow treatment
+- toggling skip day on the current day applies a visible blue-wash pressed state to the skip button instead of leaving it visually identical to the neutral stationery button
+- handwritten display and supporting text no longer rely on bold font weights that violate the visual-language standard
+- the CSS helper changes do not alter task, skip-day, navigation, or realtime behavior
 
 ## Risks And Open Questions
 
-- The issue text says "all visible elements," which is broader than a single component pass. The implementation should therefore include the shell states and Settings, not just dashboard columns.
-- The handwritten / letterpress requirement must be balanced against 8-foot readability. Decorative choices that lower legibility should be rejected even if they look more "artful" up close.
-- Over-styling utility controls could make the app feel precious or hard to use. The target is calm and tactile, not ornamental clutter.
-- The prototype wireframes are sparse and low fidelity, so the implementation should infer layout restraint and mark-making from them without treating every exact pixel as a literal spec.
+- Moving shared CSS into a Tailwind layer changes precedence across multiple visible controls, so browser validation needs to cover more than the originally reported button states.
+- Lowering handwritten font weights must preserve 8-foot readability; if a regular weight becomes too faint in Chrome, the implementation should stop at the lightest readable value rather than mechanically chasing the minimum weight.
+- Because the review bug is about cascade precedence, markup-level tests alone are insufficient; browser-level assertions are required to prove the fix.
 
 ## Exit Criteria
 
 This slice is done when:
 
-- `docs/plans/14/plan.md` is checked in and matches the implemented FEAT-014 seam
-- all visible board flows use a coherent watercolor / letterpress visual system
-- dashboard, single-list, day navigation, settings, and board shell states no longer show generic software-like controls
+- `docs/plans/14/plan.md` is checked in and matches the implemented PR rework seam
+- the shared handwritten / stationery helpers no longer override Tailwind utility-driven state styling because they live inside an explicit cascade layer
+- day-navigation disabled and pressed states are visibly distinct in the browser and remain aligned with the watercolor aesthetic
+- handwritten helper weights comply with the light-to-regular guidance in `Standard - Visual Language`
 - typecheck, lint, unit, e2e, and structural checks pass locally
 - the updated UI has been visually verified in local Chrome via Playwright at an iPad-like viewport
-- the branch is left ready for PR update or creation against `main`
+- the branch is left ready for PR update against `main`

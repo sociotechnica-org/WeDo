@@ -20,7 +20,7 @@ function arrowClassName(disabled = false) {
   return [
     'stationery-link inline-flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-[1.4rem] border text-[1.65rem] leading-none transition-transform duration-200',
     disabled
-      ? 'cursor-not-allowed border-[rgba(107,90,75,0.08)] bg-[rgba(245,237,227,0.46)] text-[rgba(123,107,92,0.45)] shadow-none'
+      ? 'cursor-not-allowed border-[rgba(107,90,75,0.08)] bg-none bg-[rgba(245,237,227,0.46)] text-[rgba(123,107,92,0.45)] shadow-none'
       : 'border-[rgba(107,90,75,0.12)] px-0 py-0 text-[var(--color-ink)]',
   ].join(' ');
 }
@@ -67,7 +67,7 @@ export function DayNavigation({
           <button
             aria-label={`Toggle skip day for ${formatDayLabel(currentDate)}`}
             aria-pressed={isSkipped}
-            className={`stationery-button px-4 py-2 text-[1rem] ${isSkipped ? 'border-[rgba(107,90,75,0.16)] bg-[rgba(177,201,220,0.28)] text-[var(--color-ink)]' : 'stationery-button--muted text-[var(--color-ink-soft)]'} disabled:cursor-not-allowed disabled:opacity-55`}
+            className={`stationery-button px-4 py-2 text-[1rem] ${isSkipped ? 'border-[rgba(107,90,75,0.16)] bg-none bg-[rgba(177,201,220,0.28)] text-[var(--color-ink)]' : 'stationery-button--muted text-[var(--color-ink-soft)]'} disabled:cursor-not-allowed disabled:opacity-55`}
             data-testid="day-skip-toggle"
             disabled={skipToggleDisabled}
             onClick={onToggleSkipDay}
