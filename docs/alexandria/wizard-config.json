@@ -1,0 +1,180 @@
+{
+  "version": "1.0",
+  "generated": "2026-04-07T00:00:00Z",
+  "inputs": {
+    "mode": "factory",
+    "novelty": "low",
+    "complexity": "moderate"
+  },
+  "pool_size": 22,
+  "distribution": {
+    "foundation": 5,
+    "core": 8,
+    "amplifier": 8,
+    "deprioritized": 1
+  },
+  "overrides": [
+    {
+      "area_id": "3.3",
+      "area_name": "Engagement Loops",
+      "engine_default": "amplifier",
+      "user_override": "core",
+      "reason": "User moved to core — engagement loops are a primary design concern for this product"
+    },
+    {
+      "area_id": "1.4",
+      "area_name": "Competitive Analysis",
+      "engine_default": "core",
+      "user_override": "amplifier",
+      "reason": "User moved to amplifier — competitive landscape is well understood and not a primary input"
+    },
+    {
+      "area_id": "1.5",
+      "area_name": "Market Requirements",
+      "engine_default": "core",
+      "user_override": "amplifier",
+      "reason": "User moved to amplifier — market requirements are stable and do not need frequent surfacing"
+    },
+    {
+      "area_id": "4.4",
+      "area_name": "Accessibility Standards",
+      "engine_default": "core",
+      "user_override": "amplifier",
+      "reason": "User moved to amplifier — accessibility handled via design system conventions, not a standalone focus area"
+    }
+  ],
+  "areas": [
+    {
+      "id": "1.1",
+      "name": "Product Vision",
+      "group": "Vision & Strategy",
+      "tier": "foundation"
+    },
+    {
+      "id": "1.2",
+      "name": "Product Strategy",
+      "group": "Vision & Strategy",
+      "tier": "foundation"
+    },
+    {
+      "id": "1.3",
+      "name": "User Personas / JTBD",
+      "group": "Vision & Strategy",
+      "tier": "amplifier"
+    },
+    {
+      "id": "1.4",
+      "name": "Competitive Analysis",
+      "group": "Vision & Strategy",
+      "tier": "amplifier"
+    },
+    {
+      "id": "1.5",
+      "name": "Market Requirements",
+      "group": "Vision & Strategy",
+      "tier": "amplifier"
+    },
+    {
+      "id": "2.1",
+      "name": "Information Architecture",
+      "group": "Architecture & Nouns",
+      "tier": "amplifier"
+    },
+    {
+      "id": "2.2",
+      "name": "Noun Vocabulary",
+      "group": "Architecture & Nouns",
+      "tier": "foundation"
+    },
+    {
+      "id": "2.3",
+      "name": "Product Entities",
+      "group": "Architecture & Nouns",
+      "tier": "core"
+    },
+    {
+      "id": "2.4",
+      "name": "System Design",
+      "group": "Architecture & Nouns",
+      "tier": "core"
+    },
+    {
+      "id": "2.5",
+      "name": "Full GDD / PRD",
+      "group": "Architecture & Nouns",
+      "tier": "amplifier"
+    },
+    {
+      "id": "3.1",
+      "name": "User Journey Maps",
+      "group": "Experience & Feel",
+      "tier": "amplifier"
+    },
+    {
+      "id": "3.2",
+      "name": "Emotional / Aesthetic Goals",
+      "group": "Experience & Feel",
+      "tier": "foundation"
+    },
+    {
+      "id": "3.3",
+      "name": "Engagement Loops",
+      "group": "Experience & Feel",
+      "tier": "core"
+    },
+    {
+      "id": "3.4",
+      "name": "Progression / Mastery",
+      "group": "Experience & Feel",
+      "tier": "deprioritized"
+    },
+    {
+      "id": "3.5",
+      "name": "Anti-Patterns",
+      "group": "Experience & Feel",
+      "tier": "foundation"
+    },
+    {
+      "id": "4.1",
+      "name": "Design System",
+      "group": "Visual & Interaction",
+      "tier": "core"
+    },
+    {
+      "id": "4.2",
+      "name": "Interaction Patterns",
+      "group": "Visual & Interaction",
+      "tier": "core"
+    },
+    {
+      "id": "4.3",
+      "name": "Prototypes / Mockups",
+      "group": "Visual & Interaction",
+      "tier": "core"
+    },
+    {
+      "id": "4.4",
+      "name": "Accessibility Standards",
+      "group": "Visual & Interaction",
+      "tier": "amplifier"
+    },
+    {
+      "id": "5.1",
+      "name": "Key Decisions Log",
+      "group": "Decision History",
+      "tier": "core"
+    },
+    {
+      "id": "5.2+5.4",
+      "name": "Institutional Memory",
+      "group": "Decision History",
+      "tier": "amplifier"
+    },
+    {
+      "id": "5.3",
+      "name": "Roadmap",
+      "group": "Decision History",
+      "tier": "core"
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "main": {
+    "id": "1af96bc5f21b74c7",
+    "type": "split",
+    "children": [
+      {
+        "id": "9589c9510dd42c07",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6307cd8188fda195",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "library/experience/forces/Force - No Rollover Freshness.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Force - No Rollover Freshness"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2d949f5427166168",
+    "type": "split",
+    "children": [
+      {
+        "id": "1953ac672a9b7586",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "a9f34f4351b760b7",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "72bf1b47f559dce7",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "3a7b338aa81492a1",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "e91baeedd927190a",
+    "type": "split",
+    "children": [
+      {
+        "id": "64903a989f1e866b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2844c0c08c0728b2",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "library/experience/forces/Force - No Rollover Freshness.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Force - No Rollover Freshness"
+            }
+          },
+          {
+            "id": "0614c9df5e4780d1",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "library/experience/forces/Force - No Rollover Freshness.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Force - No Rollover Freshness"
+            }
+          },
+          {
+            "id": "06fc1886c1dcc87c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "14d6907b1cf53c3a",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "70dcc890026a3a52",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "library/experience/forces/Force - No Rollover Freshness.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Force - No Rollover Freshness"
+            }
+          }
+        ],
+        "currentTab": 4
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "6307cd8188fda195",
+  "lastOpenFiles": [
+    "library/product/domains/Domain - Daily Board.md",
+    "library/rationale/standards/Standard - Engineering Methodology.md",
+    "library/rationale/principles/Principle - Constraint is the Product.md",
+    "library/product/systems/System - Streak Engine.md",
+    "library/product/systems/System - Recurrence Engine.md",
+    "library/product/systems/System - Real-Time Sync.md",
+    "library/product/systems/System - NL Task Parser.md",
+    "library/product/systems/System - Data Store.md",
+    "library/product/sections/Section - Streaks and Analytics.md",
+    "library/product/sections/Section - Single List View.md",
+    "library/product/sections/Section - Day Navigation.md",
+    "library/product/sections/Section - Dashboard View.md",
+    "library/product/components/Component - Task Row.md",
+    "library/product/components/Component - Person Column.md",
+    "library/product/components/Component - Completion Ring.md",
+    "library/product/capabilities/Capability - Navigate Days.md",
+    "library/product/capabilities/Capability - Add Task via Natural Language.md",
+    "library/experience/loops/Loop - Streak Motivation.md",
+    "library/experience/loops/Loop - Daily Completion Rhythm.md",
+    "library/experience/experience-goals/Experience Goal - Mutual Accountability.md",
+    "library/experience/experience-goals/Experience Goal - Ambient Calm.md"
+  ]
+}
