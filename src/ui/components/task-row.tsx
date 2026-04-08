@@ -286,7 +286,7 @@ export function TaskRow({
       </div>
       <button
         aria-label={`Toggle ${task.task.title}`}
-        className={`relative z-10 block w-full rounded-[1.35rem] bg-[rgba(255,252,247,0.84)] text-left transition-transform duration-200 disabled:cursor-not-allowed ${rowPadding}`}
+        className={`relative z-10 block w-full rounded-[1.35rem] text-left transition-transform duration-200 disabled:cursor-not-allowed ${rowPadding}`}
         disabled={disabled}
         onClick={handleRowClick}
         onPointerCancel={handlePointerCancel}

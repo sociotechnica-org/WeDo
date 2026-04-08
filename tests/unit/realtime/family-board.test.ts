@@ -709,4 +709,27 @@ describe('FamilyBoard durable object', () => {
       reason: 'Unexpected realtime error.',
     });
   });
+
+  it('uses a server-error close code for unexpected mutation failures', async () => {
+    const room = new FamilyBoard(
+      new FakeDurableObjectState() as never,
+      { DB: {} } as never,
+    );
+    const socket = new FakeWebSocket({ familyId: 'family-maple' });
+
+    deleteTask.mockRejectedValue(new Error('Streak sync failed.'));
+
+    await room.webSocketMessage(
+      socket as unknown as WebSocket,
+      JSON.stringify({
+        type: 'task_deleted',
+        task_id: 'task-piano',
+      }),
+    );
+
+    expect(socket.closed).toEqual({
+      code: 1011,
+      reason: 'Unexpected realtime error.',
+    });
+  });
 });

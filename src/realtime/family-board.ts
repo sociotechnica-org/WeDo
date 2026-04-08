@@ -339,12 +339,16 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
         }
       }
     } catch (error) {
+      const isClientError =
+        error instanceof FamilyBoardStateError ||
+        error instanceof ZodError ||
+        error instanceof SyntaxError;
       const messageText =
         error instanceof FamilyBoardStateError
           ? error.message
           : 'Unexpected realtime error.';
 
-      socket.close(1008, messageText);
+      socket.close(isClientError ? 1008 : 1011, messageText);
     }
   }
 

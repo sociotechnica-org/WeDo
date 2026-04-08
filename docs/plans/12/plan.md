@@ -29,11 +29,11 @@ This PR does not include:
 ## Current Context And Gaps
 
 - FEAT-006 and FEAT-009 already established Single List View as the only task-interaction and task-entry surface, so deletion belongs there and nowhere else.
-- The current realtime protocol supports task toggle and skip-day toggle, but there is no delete mutation yet.
+- On `main`, the realtime protocol supports task toggle and skip-day toggle, but not task deletion yet.
 - The Durable Object already fans out refreshed `state_update` snapshots after mutations, so this slice should reuse full-board broadcasts instead of inventing a bespoke server event.
 - D1 is already the source of truth for tasks and task completions. Deletion must remove durable rows first, then broadcast refreshed state.
 - The current `TaskRow` component renders the entire single-list row as one full-width button. That structure needs to be reshaped so row tap-to-toggle and trash tap/click can coexist without invalid nested buttons.
-- Review feedback on the current branch identified four concrete gaps to close in this pass: the task row and its completions are removed by separate writes instead of one atomic D1 batch, optimistic deletion does not restore the last confirmed board on server rejection, the hidden delete button remains focusable before it is revealed, and swipe intent is re-evaluated on every move instead of being locked once the gesture direction is clear.
+- Review feedback on the current branch identified a final hardening pass to keep aligned with the delete slice: preserve the atomic D1 batch while documenting the raw D1 tradeoff and cache invalidation, distinguish validation closes from unexpected realtime failures, remove now-obsolete delete helpers, and keep swipeable task rows visually aligned with the non-swipe card treatment.
 - The deletion broadcast intentionally refreshes every viewed date, not just dates at or after the current view, because removing a recurring task changes board composition across the full family timeline.
 - The repo expects a Bridget briefing, but there is no Bridget tool and no checked-in `CONTEXT_BRIEFING.md` in this workspace. For this slice, the Alexandria cards, ADRs, checked-in ticket docs, and sanitized issue summary are the context briefing source.
 
@@ -96,12 +96,12 @@ Failure and edge cases to guard:
 
 1. Add `docs/plans/12/plan.md` and keep the implementation aligned with the task-deletion seam.
 2. Extend realtime type contracts with a `task_deleted` client message and keep server responses on the existing `state_update` snapshot path.
-3. Add db helpers to delete a task's completion rows and then the task row from D1.
+3. Add a db helper to delete a task's completion rows and task row from D1 in one durable write.
 4. Add a service-layer delete mutation that validates family ownership, performs durable deletion, and triggers streak resync.
 5. Update the family Durable Object websocket handler to process task deletion and broadcast refreshed board state for every affected viewed date.
 6. Extend the board UI hook and optimistic-state helpers with a delete action that removes the task from the current snapshot immediately while preserving realtime-degraded safeguards.
 7. Refactor the single-list `TaskRow` structure so row toggle and trash affordance can coexist, then implement touch swipe reveal plus desktop hover/focus reveal in the existing watercolor / letterpress language.
-8. Harden the delete path by batching the task-row delete, completion cleanup, and streak-cache invalidation into one D1 write, restoring the last confirmed board snapshot when the server rejects an optimistic delete, locking swipe direction once the gesture clears the dead zone, and keeping the hidden trash button out of the tab order until revealed.
+8. Harden the delete path by batching the task-row delete, completion cleanup, and streak-cache invalidation into one D1 write, restoring the last confirmed board snapshot when validation rejects an optimistic delete, using a server-error close code for unexpected realtime failures, documenting the raw D1 batch tradeoff, removing obsolete delete helpers, and keeping swipeable rows visually consistent with the base task card.
 9. Add regression tests across contracts, services, realtime, optimistic helpers, route rendering, and the end-to-end focused-list delete flow.
 10. Run required checks, verify the UI in local Chrome via Playwright, review the diff, and leave the branch ready for PR update or creation.
 

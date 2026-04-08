@@ -7,8 +7,6 @@ const repositoryMocks = vi.hoisted(() => ({
   getFamilyBoardSourceData: vi.fn(),
   getFamilyPerson: vi.fn(),
   getFamilyTask: vi.fn(),
-  removeTask: vi.fn(),
-  removeTaskCompletionsForTask: vi.fn(),
   removeSkipDay: vi.fn(),
   removeTaskCompletion: vi.fn(),
   removeTaskWithCompletions: vi.fn(),
@@ -26,8 +24,6 @@ vi.mock('@/db/family-board-repository', () => ({
   getFamilyBoardSourceData: repositoryMocks.getFamilyBoardSourceData,
   getFamilyPerson: repositoryMocks.getFamilyPerson,
   getFamilyTask: repositoryMocks.getFamilyTask,
-  removeTask: repositoryMocks.removeTask,
-  removeTaskCompletionsForTask: repositoryMocks.removeTaskCompletionsForTask,
   removeSkipDay: repositoryMocks.removeSkipDay,
   removeTaskCompletion: repositoryMocks.removeTaskCompletion,
   removeTaskWithCompletions: repositoryMocks.removeTaskWithCompletions,
@@ -66,8 +62,6 @@ describe('family-board-service mutations', () => {
     repositoryMocks.getFamilyBoardSourceData.mockReset();
     repositoryMocks.getFamilyPerson.mockReset();
     repositoryMocks.getFamilyTask.mockReset();
-    repositoryMocks.removeTask.mockReset();
-    repositoryMocks.removeTaskCompletionsForTask.mockReset();
     repositoryMocks.removeSkipDay.mockReset();
     repositoryMocks.removeTaskCompletion.mockReset();
     repositoryMocks.removeTaskWithCompletions.mockReset();

@@ -158,34 +158,14 @@ export async function createTask(
   return task;
 }
 
-export async function removeTaskCompletionsForTask(
-  client: DatabaseClient,
-  taskId: string,
-): Promise<void> {
-  const db = getDatabase(client);
-
-  await db
-    .delete(taskCompletionsTable)
-    .where(eq(taskCompletionsTable.task_id, taskId));
-}
-
-export async function removeTask(
-  client: DatabaseClient,
-  familyId: string,
-  taskId: string,
-): Promise<void> {
-  const db = getDatabase(client);
-
-  await db
-    .delete(tasksTable)
-    .where(and(eq(tasksTable.family_id, familyId), eq(tasksTable.id, taskId)));
-}
-
 export async function removeTaskWithCompletions(
   client: DatabaseClient,
   familyId: string,
   taskId: string,
 ): Promise<void> {
+  // Drizzle's D1 driver does not expose batched writes, so deletion uses the
+  // raw D1 batch API to keep the task row, its completions, and streak-cache
+  // invalidation in one durable write.
   await client.batch([
     client
       .prepare('delete from task_completions where task_id = ?1')
