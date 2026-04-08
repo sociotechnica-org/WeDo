@@ -175,21 +175,21 @@ export function SettingsRoute() {
 
   return (
     <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
-      <div className="mx-auto flex max-w-[76rem] flex-col gap-5">
-        <header className="paper-panel rounded-[2.2rem] border border-[rgba(87,72,58,0.08)] px-5 py-5 shadow-[0_18px_36px_rgba(82,65,48,0.06)] md:px-7 lg:px-8">
+      <div className="mx-auto flex max-w-[78rem] flex-col gap-6">
+        <header className="paper-sheet rounded-[2.8rem] border border-[rgba(107,90,75,0.08)] px-5 py-5 md:px-7 md:py-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-start">
             <div>
               <p className="scribe-label text-[0.68rem] uppercase tracking-[0.38em] text-[var(--color-ink-soft)]">
                 Shared family board
               </p>
-              <h1 className="mt-2 text-5xl leading-none text-[var(--color-ink)] lg:text-6xl">
+              <h1 className="hand-title mt-2 text-[4.6rem] leading-[0.88] text-[var(--color-ink)] lg:text-[5.4rem]">
                 WeDo
               </h1>
               <p className="mt-3 text-[0.98rem] leading-6 text-[var(--color-ink-soft)]">
                 {householdName} for {formatDayLabel(board.day.date)}.
               </p>
               <Link
-                className="mt-4 inline-flex rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.78)] px-4 py-2 text-[0.98rem] text-[var(--color-ink)] shadow-[0_10px_24px_rgba(82,65,48,0.05)]"
+                className="stationery-link mt-4 px-5 py-2.5 text-[1.1rem]"
                 to={dashboardHref}
               >
                 Back to dashboard
@@ -200,7 +200,7 @@ export function SettingsRoute() {
               <p className="scribe-label text-[0.68rem] uppercase tracking-[0.32em] text-[var(--color-ink-soft)]">
                 Settings
               </p>
-              <h2 className="mt-3 text-[2.35rem] leading-none text-[var(--color-ink)]">
+              <h2 className="hand-title mt-3 text-[3.2rem] leading-[0.9] text-[var(--color-ink)]">
                 Person management
               </h2>
               <p className="mt-3 max-w-md text-[0.98rem] leading-6 text-[var(--color-ink-soft)]">
@@ -216,7 +216,7 @@ export function SettingsRoute() {
         ) : null}
 
         <form
-          className="paper-panel rounded-[2.2rem] border border-[rgba(87,72,58,0.08)] px-5 py-6 shadow-[0_18px_36px_rgba(82,65,48,0.06)] md:px-7 md:py-8"
+          className="paper-sheet rounded-[3rem] border border-[rgba(107,90,75,0.08)] px-5 py-6 md:px-7 md:py-8"
           onSubmit={(event) => {
             void handleSave(event);
           }}
@@ -243,7 +243,7 @@ export function SettingsRoute() {
 
               return (
                 <li
-                  className="rounded-[1.6rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.76)] px-4 py-4 shadow-[0_12px_28px_rgba(82,65,48,0.04)]"
+                  className="paper-panel rounded-[1.9rem] border border-[rgba(107,90,75,0.1)] px-4 py-4"
                   data-testid="settings-person-row"
                   key={row.localId}
                 >
@@ -255,7 +255,7 @@ export function SettingsRoute() {
                       <div className="flex flex-col gap-2">
                         <button
                           aria-label={`Move ${row.name || 'Person'} up`}
-                          className="rounded-[0.9rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(248,242,233,0.86)] px-3 py-2 text-sm text-[var(--color-ink-soft)] disabled:opacity-35"
+                          className="stationery-button stationery-button--quiet rounded-[1rem] px-3 py-2 text-[1rem] text-[var(--color-ink-soft)] disabled:opacity-35"
                           disabled={index === 0 || isSaving}
                           onClick={() => {
                             moveDraftRow(row.localId, -1);
@@ -266,7 +266,7 @@ export function SettingsRoute() {
                         </button>
                         <button
                           aria-label={`Move ${row.name || 'Person'} down`}
-                          className="rounded-[0.9rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(248,242,233,0.86)] px-3 py-2 text-sm text-[var(--color-ink-soft)] disabled:opacity-35"
+                          className="stationery-button stationery-button--quiet rounded-[1rem] px-3 py-2 text-[1rem] text-[var(--color-ink-soft)] disabled:opacity-35"
                           disabled={index === draftRows.length - 1 || isSaving}
                           onClick={() => {
                             moveDraftRow(row.localId, 1);
@@ -283,7 +283,7 @@ export function SettingsRoute() {
                         Emoji
                       </span>
                       <input
-                        className="mt-2 w-full rounded-[1rem] border border-[rgba(87,72,58,0.12)] bg-[rgba(255,251,246,0.95)] px-3 py-3 text-[1.15rem] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none focus:border-[rgba(87,72,58,0.20)]"
+                        className="stationery-input mt-2 px-3 py-3 text-[1.15rem]"
                         disabled={isSaving}
                         onChange={(event) => {
                           updateDraftRow(row.localId, 'emoji', event.target.value);
@@ -297,7 +297,7 @@ export function SettingsRoute() {
                         Name
                       </span>
                       <input
-                        className="mt-2 w-full rounded-[1rem] border border-[rgba(87,72,58,0.12)] bg-[rgba(255,251,246,0.95)] px-4 py-3 text-[1.02rem] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none focus:border-[rgba(87,72,58,0.20)]"
+                        className="stationery-input mt-2 px-4 py-3 text-[1.02rem]"
                         disabled={isSaving}
                         onChange={(event) => {
                           updateDraftRow(row.localId, 'name', event.target.value);
@@ -310,7 +310,7 @@ export function SettingsRoute() {
                       {isConfirmingRemoval ? (
                         <>
                           <button
-                            className="rounded-[1rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(247,241,233,0.86)] px-4 py-2.5 text-[0.94rem] text-[var(--color-ink-soft)] shadow-[0_10px_22px_rgba(82,65,48,0.04)]"
+                            className="stationery-button stationery-button--muted px-4 py-2.5 text-[1rem]"
                             disabled={isSaving}
                             onClick={() => {
                               setConfirmingRemovalId(null);
@@ -320,7 +320,7 @@ export function SettingsRoute() {
                             Keep
                           </button>
                           <button
-                            className="rounded-[1rem] border border-[rgba(123,101,82,0.16)] bg-[rgba(246,237,226,0.94)] px-4 py-2.5 text-[0.94rem] text-[var(--color-ink)] shadow-[0_10px_22px_rgba(82,65,48,0.04)]"
+                            className="stationery-button px-4 py-2.5 text-[1rem]"
                             disabled={isSaving}
                             onClick={() => {
                               handleRemovePerson(row.localId);
@@ -332,7 +332,7 @@ export function SettingsRoute() {
                         </>
                       ) : (
                         <button
-                          className="rounded-[1rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(248,242,233,0.86)] px-4 py-2.5 text-[0.94rem] text-[var(--color-ink-soft)] shadow-[0_10px_22px_rgba(82,65,48,0.04)] disabled:opacity-35"
+                          className="stationery-button stationery-button--muted px-4 py-2.5 text-[1rem] disabled:opacity-35"
                           disabled={isOnlyPerson || isSaving}
                           onClick={() => {
                             setConfirmingRemovalId(row.localId);
@@ -350,7 +350,7 @@ export function SettingsRoute() {
             })}
           </ol>
 
-          <section className="mt-8 rounded-[1.8rem] border border-dashed border-[rgba(87,72,58,0.12)] bg-[rgba(250,246,240,0.68)] px-4 py-5 md:px-5">
+          <section className="paper-panel mt-8 rounded-[2.1rem] border border-dashed border-[rgba(107,90,75,0.12)] bg-[rgba(250,246,240,0.68)] px-4 py-5 md:px-5">
             <p className="scribe-label text-[0.68rem] uppercase tracking-[0.32em] text-[var(--color-ink-soft)]">
               Add a Person
             </p>
@@ -360,7 +360,7 @@ export function SettingsRoute() {
                   Emoji
                 </span>
                 <input
-                  className="mt-2 w-full rounded-[1rem] border border-[rgba(87,72,58,0.12)] bg-[rgba(255,251,246,0.95)] px-3 py-3 text-[1.15rem] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none focus:border-[rgba(87,72,58,0.20)]"
+                  className="stationery-input mt-2 px-3 py-3 text-[1.15rem]"
                   disabled={isSaving}
                   onChange={(event) => {
                     setNewEmoji(event.target.value);
@@ -374,7 +374,7 @@ export function SettingsRoute() {
                   Name
                 </span>
                 <input
-                  className="mt-2 w-full rounded-[1rem] border border-[rgba(87,72,58,0.12)] bg-[rgba(255,251,246,0.95)] px-4 py-3 text-[1.02rem] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none focus:border-[rgba(87,72,58,0.20)]"
+                  className="stationery-input mt-2 px-4 py-3 text-[1.02rem]"
                   disabled={isSaving}
                   onChange={(event) => {
                     setNewName(event.target.value);
@@ -384,7 +384,7 @@ export function SettingsRoute() {
                 />
               </label>
               <button
-                className="rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.92)] px-5 py-3 text-[0.96rem] text-[var(--color-ink)] shadow-[0_10px_22px_rgba(82,65,48,0.05)] disabled:opacity-60"
+                className="stationery-button px-5 py-3 text-[1.05rem] disabled:opacity-60"
                 disabled={isSaving}
                 onClick={handleAddPerson}
                 type="button"
@@ -407,13 +407,13 @@ export function SettingsRoute() {
 
           <div className="mt-8 flex flex-wrap justify-end gap-3">
             <Link
-              className="rounded-[1.2rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(247,241,233,0.86)] px-5 py-3 text-[0.96rem] text-[var(--color-ink-soft)] shadow-[0_10px_22px_rgba(82,65,48,0.04)]"
+              className="stationery-link stationery-link--muted px-5 py-3 text-[1.05rem]"
               to={dashboardHref}
             >
               Cancel
             </Link>
             <button
-              className="rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.92)] px-5 py-3 text-[0.96rem] text-[var(--color-ink)] shadow-[0_10px_22px_rgba(82,65,48,0.05)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="stationery-button px-5 py-3 text-[1.05rem] disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSaving}
               type="submit"
             >

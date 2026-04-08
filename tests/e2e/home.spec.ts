@@ -1,4 +1,18 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
+
+async function readComputedStyles(locator: Locator) {
+  return locator.evaluate((element) => {
+    const styles = window.getComputedStyle(element);
+
+    return {
+      backgroundColor: styles.backgroundColor,
+      backgroundImage: styles.backgroundImage,
+      boxShadow: styles.boxShadow,
+      color: styles.color,
+      fontWeight: styles.fontWeight,
+    };
+  });
+}
 
 test('renders the realtime household dashboard with seeded family data', async ({
   page,
@@ -38,15 +52,23 @@ test('renders the realtime household dashboard with seeded family data', async (
   await expect(page.getByRole('button', { name: 'Add task' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Jess' })).toBeVisible();
   await expect(page).toHaveURL(/people\/[^/?]+\?day=/);
-  const progressText = page.getByText(
-    /^[01] of 1 tasks marked for this day\.$/,
-  );
+  const progressText = page.getByText(/0 of 1 task marked for this day\./);
   await expect(progressText).toBeVisible();
-  const initialProgress = await progressText.textContent();
+  expect(
+    Number(
+      (await readComputedStyles(page.getByRole('heading', { name: 'Jess' })))
+        .fontWeight,
+    ),
+  ).toBeLessThanOrEqual(500);
+  expect(
+    Number((await readComputedStyles(progressText)).fontWeight),
+  ).toBeLessThanOrEqual(500);
 
   await page.getByRole('button', { name: 'Toggle Kitchen reset' }).click();
 
-  await expect(progressText).not.toHaveText(initialProgress ?? '');
+  await expect(
+    page.getByText(/1 of 1 task marked for this day\./),
+  ).toBeVisible();
 
   await page.getByRole('link', { name: 'Back' }).click();
 
@@ -68,7 +90,16 @@ test('renders the realtime household dashboard with seeded family data', async (
 
   await page.getByTestId('day-nav-next').click();
   await expect(page).toHaveURL(/day=/);
-  await expect(page.getByTestId('day-nav-next')).toBeDisabled();
+  const disabledNextArrow = page.getByTestId('day-nav-next');
+  await expect(disabledNextArrow).toBeDisabled();
+
+  const disabledNextArrowStyles = await readComputedStyles(disabledNextArrow);
+  expect(disabledNextArrowStyles.backgroundImage).toBe('none');
+  expect(disabledNextArrowStyles.backgroundColor).toBe(
+    'rgba(245, 237, 227, 0.46)',
+  );
+  expect(disabledNextArrowStyles.color).toBe('rgba(123, 107, 92, 0.45)');
+  expect(disabledNextArrowStyles.boxShadow).toMatch(/none|0px 0px 0px 0px/);
 });
 
 test('creates a task from natural language in the focused single-list view', async ({
@@ -174,7 +205,7 @@ test('creates a task from natural language in the focused single-list view', asy
   ).toBeVisible();
   await expect(page.getByText('Practice piano')).toBeVisible();
   await expect(
-    page.getByText('0 of 2 tasks marked for this day.'),
+    page.getByText(/0 of 2 tasks marked for this day\./),
   ).toBeVisible();
 });
 
@@ -243,6 +274,13 @@ test('toggles the current day into a skipped, dimmed state and can clear it agai
   await expect(dayLabel).toHaveAttribute('data-skipped', 'true');
   await expect(firstColumn).toHaveAttribute('data-skipped', 'true');
 
+  await expect
+    .poll(async () => (await readComputedStyles(skipToggle)).backgroundColor)
+    .toBe('rgba(177, 201, 220, 0.28)');
+
+  const pressedSkipStyles = await readComputedStyles(skipToggle);
+  expect(pressedSkipStyles.backgroundImage).toBe('none');
+
   await page.reload();
 
   await expect(skipToggle).toHaveAttribute('aria-pressed', 'true');
@@ -279,7 +317,7 @@ test('deletes a task from the focused single-list view and removes it from the d
   await expect(page.getByText('Kitchen reset')).toHaveCount(0);
   await expect(page.getByText('No tasks for this day.')).toBeVisible();
   await expect(
-    page.getByText('0 of 0 tasks marked for this day.'),
+    page.getByText('No tasks resting on this page today.'),
   ).toBeVisible();
 
   await page.getByRole('link', { name: 'Back' }).click();

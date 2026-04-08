@@ -8,6 +8,21 @@ import { TaskRow } from '@/ui/components/task-row';
 import { buildDayHref } from '@/ui/lib/day-navigation';
 import { useReadyBoard } from '@/ui/routes/use-ready-board';
 
+function getProgressMessage(completedCount: number, totalCount: number) {
+  if (totalCount === 0) {
+    return 'No tasks resting on this page today.';
+  }
+
+  const taskLabel = totalCount === 1 ? 'task' : 'tasks';
+  const countMessage = `${completedCount} of ${totalCount} ${taskLabel} marked for this day.`;
+
+  if (completedCount === totalCount) {
+    return `${countMessage} Everything on this page is resting in blue.`;
+  }
+
+  return `${countMessage} Tap any line to wash it blue.`;
+}
+
 export function SingleListRoute() {
   const { personId } = useParams();
   const {
@@ -39,16 +54,18 @@ export function SingleListRoute() {
   if (!personState) {
     return (
       <main className="paper-canvas grid min-h-screen place-items-center px-6 py-10">
-        <div className="paper-panel max-w-xl rounded-[2rem] px-8 py-10 text-center shadow-[0_24px_60px_rgba(82,65,48,0.10)]">
+        <div className="paper-sheet max-w-xl rounded-[2.6rem] border border-[rgba(107,90,75,0.08)] px-8 py-10 text-center">
           <p className="scribe-label text-sm uppercase tracking-[0.35em] text-[var(--color-ink-soft)]">
             Person not found
           </p>
-          <h1 className="mt-4 text-5xl text-[var(--color-ink)]">WeDo</h1>
+          <h1 className="hand-title mt-4 text-[4.8rem] leading-none text-[var(--color-ink)]">
+            WeDo
+          </h1>
           <p className="mt-4 text-lg text-[var(--color-ink-soft)]">
             That list is no longer available on the current board.
           </p>
           <Link
-            className="mt-6 inline-flex rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.78)] px-4 py-2 text-[0.98rem] text-[var(--color-ink)] shadow-[0_10px_24px_rgba(82,65,48,0.05)]"
+            className="stationery-link mt-6 px-5 py-2.5 text-[1.05rem]"
             to={buildDayHref('/', board.day.date, todayDate)}
           >
             Back to dashboard
@@ -94,21 +111,22 @@ export function SingleListRoute() {
 
   return (
     <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
-      <div className="mx-auto flex max-w-[76rem] flex-col gap-5">
-        <header className="paper-panel rounded-[2.2rem] border border-[rgba(87,72,58,0.08)] px-5 py-5 shadow-[0_18px_36px_rgba(82,65,48,0.06)] md:px-7 lg:px-8">
+      <div className="mx-auto flex max-w-[78rem] flex-col gap-6">
+        <header className="paper-sheet rounded-[2.8rem] border border-[rgba(107,90,75,0.08)] px-5 py-5 md:px-7 md:py-6 lg:px-8">
           <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr] md:items-start">
             <div>
               <p className="scribe-label text-[0.68rem] uppercase tracking-[0.38em] text-[var(--color-ink-soft)]">
                 Shared family board
               </p>
-              <h1 className="mt-2 text-5xl leading-none text-[var(--color-ink)] lg:text-6xl">
+              <h1 className="hand-title mt-2 text-[4.8rem] leading-[0.88] text-[var(--color-ink)] lg:text-[5.8rem]">
                 WeDo
               </h1>
               <Link
-                className="mt-4 inline-flex rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.78)] px-4 py-2 text-[0.98rem] text-[var(--color-ink)] shadow-[0_10px_24px_rgba(82,65,48,0.05)]"
+                className="stationery-link mt-4 px-5 py-2.5 text-[1.2rem]"
                 to={buildDayHref('/', board.day.date, todayDate)}
               >
-                Back
+                <span aria-hidden="true">←</span>
+                <span>Back</span>
               </Link>
             </div>
 
@@ -122,7 +140,7 @@ export function SingleListRoute() {
 
             <div className="justify-self-start md:justify-self-end">
               <Link
-                className="inline-flex rounded-full border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.66)] px-4 py-2 text-sm tracking-[0.14em] text-[var(--color-ink-soft)] shadow-[0_10px_24px_rgba(82,65,48,0.04)]"
+                className="stationery-link px-5 py-2.5 text-[1.1rem] text-[var(--color-ink)]"
                 to={buildDayHref('/settings', board.day.date, todayDate)}
               >
                 Settings
@@ -136,9 +154,9 @@ export function SingleListRoute() {
         ) : null}
 
         <section
-          className="paper-panel relative overflow-hidden rounded-[2.2rem] border border-[rgba(87,72,58,0.08)] px-6 py-8 shadow-[0_18px_36px_rgba(82,65,48,0.06)] md:px-10 md:py-10"
+          className="paper-sheet relative overflow-hidden rounded-[3rem] border border-[rgba(107,90,75,0.08)] px-6 py-8 md:px-10 md:py-10"
           style={{
-            background: `radial-gradient(circle at top, ${palette.cloud}, transparent 34%), linear-gradient(180deg, rgba(255, 253, 250, 0.88), rgba(248, 242, 233, 0.88))`,
+            background: `radial-gradient(circle at top, ${palette.cloud}, transparent 32%), linear-gradient(180deg, rgba(255, 253, 250, 0.9), rgba(248, 242, 233, 0.8))`,
           }}
         >
           <div className="relative flex flex-col items-center text-center">
@@ -153,14 +171,13 @@ export function SingleListRoute() {
               Focused list
             </p>
             <h2
-              className="mt-3 text-[3rem] leading-none md:text-[4rem]"
+              className="hand-title mt-3 text-[4.2rem] leading-[0.88] md:text-[5.6rem]"
               style={{ color: palette.ink }}
             >
               {personState.person.name}
             </h2>
-            <p className="mt-3 text-[1.02rem] leading-6 text-[var(--color-ink-soft)]">
-              {completedCount} of {personState.tasks.length} tasks marked for
-              this day.
+            <p className="hand-link mt-4 text-[1.3rem] leading-8 text-[var(--color-ink-soft)]">
+              {getProgressMessage(completedCount, personState.tasks.length)}
             </p>
           </div>
 
@@ -184,7 +201,7 @@ export function SingleListRoute() {
               />
             ))}
             {personState.tasks.length === 0 ? (
-              <li className="rounded-[1.35rem] border border-dashed border-[rgba(87,72,58,0.12)] px-5 py-6 text-center text-[1.08rem] leading-7 text-[var(--color-ink-soft)]">
+              <li className="rounded-[1.9rem] border border-dashed border-[rgba(107,90,75,0.12)] bg-[rgba(255,249,241,0.32)] px-5 py-6 text-center text-[1.08rem] leading-7 text-[var(--color-ink-soft)]">
                 No tasks for this day.
               </li>
             ) : null}
@@ -193,7 +210,7 @@ export function SingleListRoute() {
           <div className="mt-8 flex justify-center">
             {isComposerOpen ? (
               <form
-                className="w-full max-w-3xl rounded-[1.6rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.84)] px-5 py-5 shadow-[0_14px_32px_rgba(82,65,48,0.06)]"
+                className="paper-panel w-full max-w-3xl rounded-[2rem] border border-[rgba(107,90,75,0.1)] px-5 py-5"
                 onSubmit={(event) => {
                   void handleCreateTaskSubmit(event);
                 }}
@@ -205,7 +222,7 @@ export function SingleListRoute() {
                   Add task
                 </label>
                 <input
-                  className="mt-3 w-full rounded-[1.1rem] border border-[rgba(87,72,58,0.12)] bg-[rgba(255,251,246,0.95)] px-4 py-3 text-[1.02rem] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] outline-none placeholder:text-[rgba(87,72,58,0.45)] focus:border-[rgba(87,72,58,0.20)]"
+                  className="stationery-input mt-3 px-4 py-3 text-[1.05rem]"
                   disabled={isSubmitting}
                   id="task-entry-input"
                   onChange={(event) => {
@@ -222,7 +239,7 @@ export function SingleListRoute() {
                 ) : null}
                 <div className="mt-4 flex flex-wrap justify-end gap-3">
                   <button
-                    className="rounded-[1.2rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(247,241,233,0.86)] px-5 py-2.5 text-[0.96rem] text-[var(--color-ink-soft)] shadow-[0_10px_22px_rgba(82,65,48,0.04)]"
+                    className="stationery-button stationery-button--muted px-5 py-2.5 text-[1.05rem]"
                     disabled={isSubmitting}
                     onClick={() => {
                       setIsComposerOpen(false);
@@ -234,7 +251,7 @@ export function SingleListRoute() {
                     Cancel
                   </button>
                   <button
-                    className="rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.92)] px-5 py-2.5 text-[0.96rem] text-[var(--color-ink)] shadow-[0_10px_22px_rgba(82,65,48,0.05)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="stationery-button px-5 py-2.5 text-[1.05rem] disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={isSubmitting || trimmedInput.length === 0}
                     type="submit"
                   >
@@ -244,7 +261,7 @@ export function SingleListRoute() {
               </form>
             ) : (
               <button
-                className="rounded-[1.4rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.8)] px-8 py-4 text-[1.05rem] tracking-[0.08em] text-[var(--color-ink-soft)] shadow-[0_12px_28px_rgba(82,65,48,0.05)]"
+                className="stationery-button px-8 py-4 text-[1.35rem] text-[var(--color-ink)]"
                 onClick={() => {
                   setIsComposerOpen(true);
                   setErrorMessage(null);

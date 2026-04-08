@@ -52,6 +52,82 @@ function TrashIcon() {
   );
 }
 
+function SketchCheckbox({
+  isCompleted,
+  tint,
+  variant,
+}: {
+  isCompleted: boolean;
+  tint: string;
+  variant: TaskRowProps['variant'];
+}) {
+  const size = variant === 'single-list' ? 36 : 28;
+  const strokeWidth = variant === 'single-list' ? 2.4 : 2;
+  const checkStrokeWidth = variant === 'single-list' ? 4 : 3.5;
+  const path = variant === 'single-list' ? 'M9 18L16 27L28 10' : 'M7 14L12 20L21 8';
+
+  return (
+    <span
+      aria-hidden="true"
+      className="mt-1 grid shrink-0 place-items-center"
+      style={{
+        height: `${size}px`,
+        width: `${size}px`,
+      }}
+    >
+      <svg
+        fill="none"
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        width={size}
+      >
+        <rect
+          fill={isCompleted ? 'rgba(93, 151, 206, 0.14)' : 'rgba(255, 251, 245, 0.56)'}
+          height={size - 10}
+          rx={variant === 'single-list' ? 7 : 5}
+          stroke="rgba(71, 58, 47, 0.78)"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={strokeWidth}
+          width={size - 10}
+          x="4"
+          y="5"
+        />
+        <rect
+          fill="none"
+          height={size - 10}
+          rx={variant === 'single-list' ? 7 : 5}
+          stroke="rgba(71, 58, 47, 0.32)"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.4"
+          width={size - 10}
+          x="5"
+          y="4"
+        />
+        {isCompleted ? (
+          <>
+            <path
+              d={path}
+              stroke="rgba(255, 255, 255, 0.5)"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={checkStrokeWidth + 1.5}
+            />
+            <path
+              d={path}
+              stroke={tint}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={checkStrokeWidth}
+            />
+          </>
+        ) : null}
+      </svg>
+    </span>
+  );
+}
+
 export function TaskRow({
   task,
   tint,
@@ -71,19 +147,17 @@ export function TaskRow({
   const isCompleted = task.completion !== null;
   const isInteractive = variant === 'single-list' && onPress !== undefined;
   const canDelete = variant === 'single-list' && onDelete !== undefined;
-  const checkboxSize = variant === 'single-list' ? 'size-7' : 'size-5';
-  const checkboxInnerSize = variant === 'single-list' ? 'size-4' : 'size-2.5';
-  const checkboxRadius =
-    variant === 'single-list' ? 'rounded-[0.55rem]' : 'rounded-[0.45rem]';
-  const checkboxInnerRadius =
-    variant === 'single-list' ? 'rounded-[0.3rem]' : 'rounded-[0.2rem]';
   const emojiSize = variant === 'single-list' ? 'text-2xl' : 'text-lg';
   const rowPadding =
-    variant === 'single-list' ? 'px-5 py-4 md:px-6 md:py-5' : 'px-3.5 py-3.5';
+    variant === 'single-list' ? 'px-5 py-4 md:px-6 md:py-5' : 'px-3 py-2.5';
   const rowTextSize =
     variant === 'single-list'
-      ? 'text-[1.18rem] leading-7 md:text-[1.32rem] md:leading-8'
-      : 'text-[1.02rem] leading-6';
+      ? 'text-[1.3rem] leading-8 md:text-[1.52rem] md:leading-9'
+      : 'text-[1.06rem] leading-7';
+  const surfaceClassName =
+    variant === 'single-list'
+      ? 'paper-panel rounded-[1.8rem] border border-[rgba(107,90,75,0.08)]'
+      : 'rounded-[1.4rem] bg-[rgba(255,250,244,0.34)]';
   const deleteReveal =
     dragReveal > 0
       ? dragReveal
@@ -203,29 +277,17 @@ export function TaskRow({
 
   const content = (
     <div className={`flex items-start gap-3 ${variant === 'single-list' ? 'md:gap-4' : ''}`}>
-      <div
-        aria-hidden="true"
-        className={`mt-1 grid shrink-0 place-items-center border border-[rgba(87,72,58,0.28)] bg-[rgba(255,252,247,0.94)] ${checkboxRadius} ${checkboxSize}`}
-      >
-        <div
-          className={`${checkboxInnerRadius} ${checkboxInnerSize} transition-colors`}
-          style={{
-            background: isCompleted ? tint : 'transparent',
-            boxShadow: isCompleted
-              ? 'inset 0 0 0 1px rgba(87,72,58,0.08)'
-              : 'inset 0 0 0 1px rgba(87,72,58,0.12)',
-          }}
-        />
-      </div>
+      <SketchCheckbox isCompleted={isCompleted} tint={tint} variant={variant} />
       <span aria-hidden="true" className={`${emojiSize} leading-none`}>
         {task.task.emoji}
       </span>
       <span
-        className={`min-w-0 flex-1 ${rowTextSize} text-[var(--color-ink)]`}
+        className={`hand-link min-w-0 flex-1 ${rowTextSize} text-[var(--color-ink)]`}
         style={{
-          opacity: isCompleted ? 0.72 : 1,
-          textDecoration: isCompleted ? 'line-through' : 'none',
-          textDecorationThickness: '1px',
+          opacity: isCompleted ? 0.86 : 1,
+          background: isCompleted
+            ? 'linear-gradient(180deg, transparent 55%, rgba(93, 151, 206, 0.2) 55%, rgba(93, 151, 206, 0.2) 88%, transparent 88%)'
+            : 'transparent',
         }}
       >
         {task.task.title}
@@ -236,13 +298,13 @@ export function TaskRow({
   if (!canDelete) {
     return (
       <li
-        className={`rounded-[1.35rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(255,252,247,0.84)] shadow-[0_10px_24px_rgba(82,65,48,0.05)] ${rowPadding}`}
+        className={`${surfaceClassName} ${rowPadding}`}
         data-testid="task-row"
       >
         {isInteractive ? (
           <button
             aria-label={`Toggle ${task.task.title}`}
-            className="block w-full text-left disabled:cursor-not-allowed"
+            className="block w-full rounded-[inherit] text-left disabled:cursor-not-allowed"
             disabled={disabled}
             onClick={handleRowClick}
             type="button"
@@ -258,7 +320,7 @@ export function TaskRow({
 
   return (
     <li
-      className="relative overflow-hidden rounded-[1.35rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(255,252,247,0.84)] shadow-[0_10px_24px_rgba(82,65,48,0.05)]"
+      className={`${surfaceClassName} relative overflow-hidden`}
       data-testid="task-row"
       onBlurCapture={handleBlurCapture}
       onFocusCapture={handleFocusCapture}
@@ -274,7 +336,7 @@ export function TaskRow({
         {isDeleteVisible ? (
           <button
             aria-label={`Delete ${task.task.title}`}
-            className="inline-flex h-[calc(100%-1rem)] w-16 items-center justify-center rounded-[1.1rem] border border-[rgba(87,72,58,0.12)] bg-[linear-gradient(180deg,rgba(227,214,197,0.94),rgba(214,199,182,0.94))] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="stationery-button stationery-button--muted inline-flex h-[calc(100%-1rem)] w-16 items-center justify-center rounded-[1.3rem] border-[rgba(112,90,72,0.12)] p-0 text-[var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="task-row-delete"
             disabled={disabled}
             onClick={handleDeleteClick}
@@ -286,7 +348,7 @@ export function TaskRow({
       </div>
       <button
         aria-label={`Toggle ${task.task.title}`}
-        className={`relative z-10 block w-full rounded-[1.35rem] text-left transition-transform duration-200 disabled:cursor-not-allowed ${rowPadding}`}
+        className={`relative z-10 block w-full rounded-[inherit] text-left transition-transform duration-200 disabled:cursor-not-allowed ${rowPadding}`}
         disabled={disabled}
         onClick={handleRowClick}
         onPointerCancel={handlePointerCancel}
