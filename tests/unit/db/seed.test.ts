@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -28,8 +27,10 @@ const initialMigrationSql = readFileSync(
   resolve(projectRoot, 'src/db/migrations/0000_stormy_moira_mactaggert.sql'),
   'utf8',
 );
+const nodeSqliteModule = await import('node:sqlite').catch(() => null);
+const DatabaseSync = nodeSqliteModule?.DatabaseSync ?? null;
 
-function applyMigration(db: DatabaseSync): void {
+function applyMigration(db: { exec: (sql: string) => void }): void {
   for (const statement of initialMigrationSql
     .split('--> statement-breakpoint')
     .map((part) => part.trim())
@@ -103,9 +104,19 @@ describe('db seed data', () => {
     expect(tasks.length).toBeGreaterThan(0);
     expect(streaks).toHaveLength(6);
   });
+});
 
+const describeNodeSqlite = DatabaseSync ? describe : describe.skip;
+
+describeNodeSqlite('db seed SQL path', () => {
   it('provides a runnable SQL seed path that is idempotent for local D1', () => {
-    const db = new DatabaseSync(':memory:');
+    const Database = DatabaseSync;
+
+    if (!Database) {
+      throw new Error('node:sqlite is unavailable in this runtime.');
+    }
+
+    const db = new Database(':memory:');
     db.exec('PRAGMA foreign_keys = ON;');
     applyMigration(db);
 
@@ -130,7 +141,13 @@ describe('db seed data', () => {
   });
 
   it('enforces that seeded tasks stay in the same family as their assignee', () => {
-    const db = new DatabaseSync(':memory:');
+    const Database = DatabaseSync;
+
+    if (!Database) {
+      throw new Error('node:sqlite is unavailable in this runtime.');
+    }
+
+    const db = new Database(':memory:');
     db.exec('PRAGMA foreign_keys = ON;');
     applyMigration(db);
     db.exec(buildLocalSeedSql());

@@ -2,6 +2,12 @@ import { z } from 'zod';
 import { familyBoardStateSchema } from './entities';
 import { identifierSchema, isoDateSchema } from './shared';
 
+export type FamilyRoomKey = `family:${string}`;
+
+export function getFamilyRoomKey(familyId: string): FamilyRoomKey {
+  return `family:${familyId}`;
+}
+
 export const initRequestSchema = z
   .object({
     type: z.literal('init'),

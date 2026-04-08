@@ -6,12 +6,17 @@ const runtimeEnvironmentSchema = z.object({
   TIMEZONE: timezoneSchema.optional(),
 });
 
-export type WorkerBindings = {
+export type RuntimeConfigBindings = {
   HOUSEHOLD_NAME?: string;
   TIMEZONE?: string;
 };
 
-export function getRuntimeConfig(bindings: WorkerBindings) {
+export type WorkerBindings = RuntimeConfigBindings & {
+  DB: D1Database;
+  FAMILY_BOARD: DurableObjectNamespace;
+};
+
+export function getRuntimeConfig(bindings: RuntimeConfigBindings) {
   const parsed = runtimeEnvironmentSchema.parse(bindings);
 
   return {
