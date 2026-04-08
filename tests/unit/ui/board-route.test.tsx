@@ -12,6 +12,7 @@ import { BoardRoute } from '@/ui/routes/board-route';
 import { DashboardRoute } from '@/ui/routes/dashboard-route';
 import { SettingsRoute } from '@/ui/routes/settings-route';
 import { SingleListRoute } from '@/ui/routes/single-list-route';
+import { WatercolorPrototypeRoute } from '@/ui/routes/watercolor-prototype-route';
 
 const readyBoardState = {
   status: 'ready' as const,
@@ -77,6 +78,10 @@ function renderRoute(entry: string) {
           <Route element={<DashboardRoute />} index />
           <Route element={<SingleListRoute />} path="people/:personId" />
           <Route element={<SettingsRoute />} path="settings" />
+          <Route
+            element={<WatercolorPrototypeRoute />}
+            path="prototype/watercolor"
+          />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -168,5 +173,23 @@ describe('Board routes', () => {
     expect(markup).toContain('Jess');
     expect(markup).toContain('🌿');
     expect(markup).toContain('data-testid="settings-person-list"');
+  });
+
+  it('renders the watercolor prototype route with typography studies and live board data', () => {
+    useFamilyBoardMock.mockReturnValue(readyBoardState);
+
+    const markup = renderRoute('/prototype/watercolor?day=2026-04-07');
+
+    expect(markup).toContain('Household art, not software');
+    expect(markup).toContain('PROTO-001 watercolor study');
+    expect(markup).toContain('Storybook script');
+    expect(markup).toContain('Letterpress serif');
+    expect(markup).toContain('Field notes');
+    expect(markup).toContain('data-testid="prototype-type-gallery"');
+    expect(markup).toContain('data-testid="watercolor-prototype-dashboard"');
+    expect(markup).toContain('data-testid="prototype-person-column"');
+    expect(markup).toContain('Jess');
+    expect(markup).toContain('Kitchen reset');
+    expect(markup).toContain('href="/?day=2026-04-07"');
   });
 });
