@@ -768,6 +768,12 @@ body::after {
     color: rgba(71, 58, 47, 0.82);
   }
 
+  @media (min-width: 700px) {
+    .prototype-dashboard-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   @media (min-width: 900px) {
     .prototype-sheet__header {
       grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.9fr);
@@ -776,15 +782,7 @@ body::after {
     .prototype-type-gallery {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-  }
 
-  @media (min-width: 700px) {
-    .prototype-dashboard-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (min-width: 900px) {
     .prototype-dashboard-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }

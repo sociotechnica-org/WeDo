@@ -88,6 +88,13 @@ function renderRoute(entry: string) {
   );
 }
 
+function getPrototypeLegendMarkup(markup: string) {
+  return (
+    markup.match(/<ul class="prototype-sheet__legend-list">([\s\S]*?)<\/ul>/)?.[1] ??
+    ''
+  );
+}
+
 describe('Board routes', () => {
   it('surfaces degraded realtime status on the dashboard without hiding person links', () => {
     useFamilyBoardMock.mockReturnValue(readyBoardState);
@@ -189,7 +196,37 @@ describe('Board routes', () => {
     expect(markup).toContain('data-testid="watercolor-prototype-dashboard"');
     expect(markup).toContain('data-testid="prototype-person-column"');
     expect(markup).toContain('Jess');
+    expect(markup).not.toContain('Elizabeth');
+    expect(markup).not.toContain('Micah');
     expect(markup).toContain('Kitchen reset');
     expect(markup).toContain('href="/?day=2026-04-07"');
+  });
+
+  it('keeps the prototype legend split between unchecked and checked studies when all tasks are complete', () => {
+    useFamilyBoardMock.mockReturnValue({
+      ...readyBoardState,
+      board: {
+        ...readyBoardState.board,
+        people: readyBoardState.board.people.map((personState) => ({
+          ...personState,
+          tasks: personState.tasks.map((taskState) => ({
+            ...taskState,
+            completion: {
+              id: `completion-${taskState.task.id}`,
+              task_id: taskState.task.id,
+              date: '2026-04-07',
+              completed_at: '2026-04-07T08:00:00.000Z',
+            },
+          })),
+        })),
+      },
+    });
+
+    const markup = renderRoute('/prototype/watercolor?day=2026-04-07');
+    const legendMarkup = getPrototypeLegendMarkup(markup);
+
+    expect(legendMarkup).toContain('data-completed="false"');
+    expect(legendMarkup.match(/data-completed="false"/g)?.length).toBe(1);
+    expect(legendMarkup.match(/data-completed="true"/g)?.length).toBe(1);
   });
 });

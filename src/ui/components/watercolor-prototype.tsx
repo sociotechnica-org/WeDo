@@ -27,12 +27,26 @@ function getCompletedCount(personState: PersonDayState) {
   return personState.tasks.filter((task) => task.completion !== null).length;
 }
 
-function getTaskSample(board: FamilyBoardState, fallbackIndex: number) {
-  const taskTitle = board.people
-    .flatMap((personState) => personState.tasks)
-    .at(fallbackIndex)?.task.title;
+function getTaskSample(board: FamilyBoardState, sampleIndex: number) {
+  const studyTasks = board.people.flatMap((personState) => personState.tasks);
 
-  return taskTitle ?? 'Morning page';
+  if (studyTasks.length === 0) {
+    return 'Morning page';
+  }
+
+  return studyTasks[sampleIndex % studyTasks.length]?.task.title ?? 'Morning page';
+}
+
+function getPersonSample(
+  board: FamilyBoardState,
+  sampleIndex: number,
+  fallbackName: string,
+) {
+  if (board.people.length === 0) {
+    return fallbackName;
+  }
+
+  return board.people[sampleIndex % board.people.length]?.person.name ?? fallbackName;
 }
 
 function buildTypeStudies(board: FamilyBoardState): TypeStudy[] {
@@ -40,25 +54,59 @@ function buildTypeStudies(board: FamilyBoardState): TypeStudy[] {
     {
       key: 'storybook',
       label: 'Storybook script',
-      sampleName: board.people.at(0)?.person.name ?? 'Jess',
+      sampleName: getPersonSample(board, 0, 'Jess'),
       sampleTask: getTaskSample(board, 0),
       note: 'Handwritten headlines with soft serif notes for the room-scale glance.',
     },
     {
       key: 'letterpress',
       label: 'Letterpress serif',
-      sampleName: board.people.at(1)?.person.name ?? 'Elizabeth',
+      sampleName: getPersonSample(board, 1, 'Elizabeth'),
       sampleTask: getTaskSample(board, 1),
       note: 'A quieter book-page pairing with weight in the names, not the chrome.',
     },
     {
       key: 'field-notes',
       label: 'Field notes',
-      sampleName: board.people.at(2)?.person.name ?? 'Micah',
+      sampleName: getPersonSample(board, 2, 'Micah'),
       sampleTask: getTaskSample(board, 2),
       note: 'Notebook energy: chalky labels, airy spacing, watercolor underlines.',
     },
   ];
+}
+
+function createPrototypeCompletion(task: TaskInstance, date: string) {
+  return {
+    id: `prototype-completion-${task.task.id}`,
+    task_id: task.task.id,
+    date,
+    completed_at: `${date}T08:00:00.000Z`,
+  };
+}
+
+function buildLegendStudyTasks(board: FamilyBoardState) {
+  const studyTasks = board.people.flatMap((personState) => personState.tasks);
+  const uncheckedStudyTask = studyTasks.find((task) => task.completion === null);
+  const checkedStudyTask = studyTasks.find((task) => task.completion !== null);
+  const baseStudyTask = uncheckedStudyTask ?? checkedStudyTask;
+
+  if (!baseStudyTask) {
+    return {
+      uncheckedStudyTask: undefined,
+      checkedStudyTask: undefined,
+    };
+  }
+
+  return {
+    uncheckedStudyTask: uncheckedStudyTask ?? {
+      ...baseStudyTask,
+      completion: null,
+    },
+    checkedStudyTask: checkedStudyTask ?? {
+      ...baseStudyTask,
+      completion: createPrototypeCompletion(baseStudyTask, board.day.date),
+    },
+  };
 }
 
 function PrototypeRing({
@@ -320,22 +368,7 @@ export function WatercolorPrototype({
   householdName,
 }: WatercolorPrototypeProps) {
   const typeStudies = buildTypeStudies(board);
-  const studyTasks = board.people.flatMap((personState) => personState.tasks);
-  const uncheckedStudyTask =
-    studyTasks.find((task) => task.completion === null) ?? studyTasks.at(0);
-  const checkedStudyTask =
-    studyTasks.find((task) => task.completion !== null) ??
-    (uncheckedStudyTask
-      ? {
-          ...uncheckedStudyTask,
-          completion: {
-            id: 'prototype-completion',
-            task_id: uncheckedStudyTask.task.id,
-            date: board.day.date,
-            completed_at: `${board.day.date}T08:00:00.000Z`,
-          },
-        }
-      : undefined);
+  const { checkedStudyTask, uncheckedStudyTask } = buildLegendStudyTasks(board);
   const studyTint = getPersonPalette(1).wash;
 
   return (
