@@ -4,7 +4,11 @@ import {
   PersonSettingsError,
   saveFamilyPersons,
 } from '@/services/person-settings';
-import { savePersonsRequestSchema, savePersonsResponseSchema } from '@/types';
+import {
+  savePersonsRequestSchema,
+  savePersonsResponseSchema,
+  type SavePersonsRequest,
+} from '@/types';
 import { type WorkerBindings } from '@/config/runtime';
 
 type AppEnv = {
@@ -16,11 +20,24 @@ const unexpectedPersonSaveMessage =
 
 export function registerPersonRoutes(app: Hono<AppEnv>) {
   app.put('/api/families/:familyId/persons', async (context) => {
+    let requestBody: SavePersonsRequest;
+
     try {
-      const familyId = context.req.param('familyId');
-      const requestBody = savePersonsRequestSchema.parse(
+      requestBody = savePersonsRequestSchema.parse(
         (await context.req.json()) as unknown,
       );
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return context.text('Person settings request is invalid.', 400);
+      }
+      if (error instanceof Error) {
+        return context.text(unexpectedPersonSaveMessage, 503);
+      }
+      return context.text('Saving person settings failed.', 500);
+    }
+
+    try {
+      const familyId = context.req.param('familyId');
       const state = await saveFamilyPersons(context.env.DB, {
         familyId,
         viewedDate: requestBody.viewed_date,
@@ -33,10 +50,6 @@ export function registerPersonRoutes(app: Hono<AppEnv>) {
         }),
       );
     } catch (error) {
-      if (error instanceof ZodError) {
-        return context.text('Person settings request is invalid.', 400);
-      }
-
       if (error instanceof PersonSettingsError) {
         return context.text(error.message, 400);
       }

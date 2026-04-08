@@ -346,4 +346,47 @@ describe('workers app realtime route', () => {
       },
     });
   });
+
+  it('returns a controlled 503 when person settings response shaping fails server-side', async () => {
+    personRouteMocks.saveFamilyPersons.mockResolvedValue({
+      family_id: 'family-123',
+      day: {
+        date: 'not-a-date',
+        is_sunday: false,
+      },
+      people: [],
+    });
+
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/persons', {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          viewed_date: '2026-04-08',
+          people: [
+            {
+              id: 'person-jess',
+              name: 'Jess',
+              emoji: '🌿',
+            },
+          ],
+        }),
+      }),
+      {
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn(),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.text()).resolves.toBe(
+      'Person settings are temporarily unavailable.',
+    );
+  });
 });

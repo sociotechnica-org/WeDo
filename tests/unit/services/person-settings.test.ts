@@ -104,6 +104,23 @@ describe('person-settings service', () => {
     ).toThrow(PersonSettingsError);
   });
 
+  it('rejects duplicate Person names even when the caller bypasses request-schema validation', () => {
+    expect(() =>
+      buildSaveFamilyPersonsPlan('family-maple', [...existingPeople], [
+        {
+          id: 'person-jess',
+          name: 'Jess',
+          emoji: '🌿',
+        },
+        {
+          id: 'person-elizabeth',
+          name: ' jess ',
+          emoji: '🪴',
+        },
+      ]),
+    ).toThrowError(new PersonSettingsError('Each Person name must be unique.'));
+  });
+
   it('persists the reconciled person list and returns a refreshed board snapshot', async () => {
     repositoryMocks.getFamilyPersons.mockResolvedValue([...existingPeople]);
     familyBoardServiceMocks.getFamilyBoardState.mockResolvedValue({

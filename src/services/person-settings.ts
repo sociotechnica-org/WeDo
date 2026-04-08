@@ -8,7 +8,9 @@ import {
 import { type DatabaseClient } from '@/db/database';
 import { getFamilyBoardState } from '@/services/family-board-service';
 import {
+  normalizePersonName,
   personSchema,
+  personSettingsEntrySchema,
   type FamilyBoardState,
   type IsoDate,
   type Person,
@@ -47,16 +49,28 @@ export function buildSaveFamilyPersonsPlan(
     throw new PersonSettingsError('At least one Person must remain on the board.');
   }
 
+  const normalizedSubmittedPeople = submittedPeople.map((person) =>
+    personSettingsEntrySchema.parse(person),
+  );
   const existingPeopleById = new Map(
     existingPeople.map((person) => [person.id, person] as const),
   );
   const keptExistingIds = new Set<string>();
+  const seenNames = new Set<string>();
   const existingUpdates: ExistingPersonUpdate[] = [];
   const newPeople: NewPersonInsert[] = [];
   const temporaryDisplayOrderBase =
-    Math.max(existingPeople.length, submittedPeople.length) + 32;
+    Math.max(existingPeople.length, normalizedSubmittedPeople.length) + 32;
 
-  submittedPeople.forEach((person, index) => {
+  normalizedSubmittedPeople.forEach((person, index) => {
+    const normalizedName = normalizePersonName(person.name);
+
+    if (seenNames.has(normalizedName)) {
+      throw new PersonSettingsError('Each Person name must be unique.');
+    }
+
+    seenNames.add(normalizedName);
+
     if (person.id) {
       const existingPerson = existingPeopleById.get(person.id);
 

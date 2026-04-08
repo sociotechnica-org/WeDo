@@ -14,7 +14,7 @@ export const personSettingsEntrySchema = z
   })
   .strict();
 
-function normalizePersonName(value: string): string {
+export function normalizePersonName(value: string): string {
   return value.toLocaleLowerCase();
 }
 
