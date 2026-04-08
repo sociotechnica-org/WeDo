@@ -63,7 +63,7 @@ Keeping this slice contract-only prevents schema design, persistence behavior, a
 Important states in this slice:
 
 - `FamilyBoardDayState`: the full family board state for a single requested date
-- client request messages: `init`, `task_toggled`, `task_created`, `task_deleted`, `skip_day_toggled`
+- client request messages: `init`, `task_toggled`
 - server response/broadcast messages: `init_response`, `state_update`
 
 Allowed transitions defined by contract:
@@ -92,6 +92,7 @@ Failure cases to guard with schemas:
 2. Add primitive schemas for `Person`, `Task`, `TaskCompletion`, `SkipDay`, and `Streak`, plus `ScheduleRules`.
 3. Add a family board day-state schema that can back both `init_response` and `state_update` without leaking UI styling concerns into the contract layer.
 4. Add discriminated WebSocket message schemas and inferred unions for client messages, server messages, and the combined protocol surface.
+   This slice only locks in `init` / `task_toggled` for client-originated messages and `init_response` / `state_update` for server-originated messages; create/delete/skip-day variants are deferred until the Durable Object slices define their durable semantics.
 5. Add `src/types/index.ts` exports for the new contract modules and keep existing health/board exports available where still needed.
 6. Update config parsing so timezone defaults to `America/New_York` using the shared timezone contract.
 7. Refactor existing scaffold code only as needed to import the new shared exports without changing product behavior.
@@ -110,14 +111,14 @@ Acceptance scenarios:
 
 - valid primitive records from the issue description parse successfully through Zod
 - invalid `schedule_rules` payloads fail on unknown day codes or empty day arrays
-- WebSocket protocol parsing accepts `init`, `task_toggled`, `task_created`, `task_deleted`, `skip_day_toggled`, `init_response`, and `state_update`
+- WebSocket protocol parsing accepts `init`, `task_toggled`, `init_response`, and `state_update`
 - discriminated unions reject unknown realtime message types
 - runtime config returns `America/New_York` when no timezone binding is provided
 - existing scaffold code still compiles and tests cleanly against the new shared exports
 
 ## Risks And Open Questions
 
-- The release docs specify the `init` request shape precisely, but the exact long-term payloads for created/deleted/toggled broadcasts could evolve as later tickets finalize D1-backed day state. The safest approach here is to make mutation messages carry explicit identifiers plus the requested date, and to standardize broadcasts on full-state refresh via `state_update`.
+- The release docs specify the `init` request shape precisely, but the exact long-term payloads for created/deleted/skip-day broadcasts should be set alongside the later D1-backed mutation slices. This plan intentionally defers those variants so the current shared contract only commits to `task_toggled` as a client mutation and `state_update` as the post-write broadcast shape.
 - The current scaffold `board` response is UI-facing and not the same as the future realtime day-state contract. This slice should avoid forcing those two models together prematurely.
 - `TaskCompletion.completed_by` appears in the Alexandria Data Store card, but the FEAT-002 ticket summary omits it from the requested schema. This slice should follow the issue scope literally and leave `completed_by` for a later schema update if the repository adds it explicitly.
 

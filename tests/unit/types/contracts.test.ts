@@ -12,8 +12,6 @@ import {
   stateUpdateMessageSchema,
   streakSchema,
   taskCompletionSchema,
-  taskCreatedMessageSchema,
-  taskDeletedMessageSchema,
   taskSchema,
   taskToggledMessageSchema,
   webSocketMessageSchema,
@@ -135,10 +133,11 @@ describe('shared type contracts', () => {
     ).toBe(false);
 
     expect(
-      taskDeletedMessageSchema.safeParse({
-        type: 'task_deleted',
+      taskToggledMessageSchema.safeParse({
+        type: 'task_toggled',
         date: '2026-04-07',
         task_id: ' task-piano ',
+        completed: true,
       }).success,
     ).toBe(false);
   });
@@ -161,27 +160,14 @@ describe('shared type contracts', () => {
       completed: true,
     } as const;
 
-    const taskCreated = {
-      type: 'task_created',
-      date: '2026-04-07',
-      task: exampleTask,
-    } as const;
-
-    const taskDeleted = {
-      type: 'task_deleted',
-      date: '2026-04-07',
-      task_id: 'task-piano',
-    } as const;
-
     const stateUpdate = {
       type: 'state_update',
       state: exampleFamilyBoardState,
     } as const;
 
     expect(clientWebSocketMessageSchema.parse(initRequest)).toEqual(initRequest);
+    expect(clientWebSocketMessageSchema.parse(taskToggled)).toEqual(taskToggled);
     expect(webSocketMessageSchema.parse(taskToggled)).toEqual(taskToggled);
-    expect(taskCreatedMessageSchema.parse(taskCreated)).toEqual(taskCreated);
-    expect(taskDeletedMessageSchema.parse(taskDeleted)).toEqual(taskDeleted);
     expect(initResponseSchema.parse(initResponse)).toEqual(initResponse);
     expect(serverWebSocketMessageSchema.parse(initResponse)).toEqual(
       initResponse,
@@ -208,7 +194,15 @@ describe('shared type contracts', () => {
     ).toBe(false);
 
     expect(
-      serverWebSocketMessageSchema.safeParse({
+      clientWebSocketMessageSchema.safeParse({
+        type: 'task_deleted',
+        date: '2026-04-07',
+        task_id: 'task-piano',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      webSocketMessageSchema.safeParse({
         type: 'skip_day_toggled',
         date: '2026-04-07',
         skip_day: exampleSkipDay,
