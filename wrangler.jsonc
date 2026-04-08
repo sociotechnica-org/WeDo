@@ -4,6 +4,16 @@
   "compatibility_date": "2026-04-08",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./src/workers/index.ts",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "we-do",
+      // Replace these placeholder IDs after creating the shared remote D1 database.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "preview_database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "src/db/migrations"
+    }
+  ],
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"],

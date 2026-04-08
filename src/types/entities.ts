@@ -43,7 +43,7 @@ export const skipDaySchema = z
     id: identifierSchema,
     family_id: identifierSchema,
     date: isoDateSchema,
-    reason: nonEmptyStringSchema.optional(),
+    reason: nonEmptyStringSchema.nullish(),
     created_at: isoTimestampSchema,
   })
   .strict();

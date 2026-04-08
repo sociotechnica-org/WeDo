@@ -53,6 +53,11 @@ const exampleSkipDay = {
   created_at: '2026-04-07T07:00:00Z',
 };
 
+const exampleSkipDayWithoutReason = {
+  ...exampleSkipDay,
+  reason: null,
+};
+
 const exampleStreak = {
   person_id: 'person-jess',
   current_count: 4,
@@ -89,6 +94,9 @@ describe('shared type contracts', () => {
       exampleCompletion,
     );
     expect(skipDaySchema.parse(exampleSkipDay)).toEqual(exampleSkipDay);
+    expect(skipDaySchema.parse(exampleSkipDayWithoutReason)).toEqual(
+      exampleSkipDayWithoutReason,
+    );
     expect(streakSchema.parse(exampleStreak)).toEqual(exampleStreak);
     expect(familyBoardStateSchema.parse(exampleFamilyBoardState)).toEqual(
       exampleFamilyBoardState,
