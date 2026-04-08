@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const realtimeServiceMocks = vi.hoisted(() => ({
   createRecurringTask: vi.fn(),
   getFamilyBoardState: vi.fn(),
+  toggleSkipDay: vi.fn(),
   toggleTaskCompletion: vi.fn(),
 }));
 
@@ -10,13 +11,18 @@ vi.mock('@/services/family-board-service', () => ({
   FamilyBoardStateError: class extends Error {},
   createRecurringTask: realtimeServiceMocks.createRecurringTask,
   getFamilyBoardState: realtimeServiceMocks.getFamilyBoardState,
+  toggleSkipDay: realtimeServiceMocks.toggleSkipDay,
   toggleTaskCompletion: realtimeServiceMocks.toggleTaskCompletion,
 }));
 
 import { FamilyBoard } from '@/realtime/family-board';
 
-const { createRecurringTask, getFamilyBoardState, toggleTaskCompletion } =
-  realtimeServiceMocks;
+const {
+  createRecurringTask,
+  getFamilyBoardState,
+  toggleSkipDay,
+  toggleTaskCompletion,
+} = realtimeServiceMocks;
 
 class FakeWebSocket {
   attachment: unknown;
@@ -95,6 +101,7 @@ describe('FamilyBoard durable object', () => {
   beforeEach(() => {
     createRecurringTask.mockReset();
     getFamilyBoardState.mockReset();
+    toggleSkipDay.mockReset();
     toggleTaskCompletion.mockReset();
     vi.useRealTimers();
   });
@@ -227,15 +234,18 @@ describe('FamilyBoard durable object', () => {
     );
 
     expect(response.status).toBe(201);
-    expect(createRecurringTask).toHaveBeenCalledWith({}, {
-      familyId: 'family-maple',
-      personId: 'person-jess',
-      title: 'Practice piano',
-      emoji: '🎹',
-      scheduleRules: {
-        days: ['MO', 'TU', 'TH', 'FR'],
+    expect(createRecurringTask).toHaveBeenCalledWith(
+      {},
+      {
+        familyId: 'family-maple',
+        personId: 'person-jess',
+        title: 'Practice piano',
+        emoji: '🎹',
+        scheduleRules: {
+          days: ['MO', 'TU', 'TH', 'FR'],
+        },
       },
-    });
+    );
     expect(getFamilyBoardState).toHaveBeenNthCalledWith(
       1,
       {},
@@ -265,6 +275,104 @@ describe('FamilyBoard durable object', () => {
         ...exampleState,
         day: {
           date: '2026-04-09',
+          is_sunday: false,
+        },
+      },
+    });
+  });
+
+  it('toggles a skip day and broadcasts refreshed state to every affected viewed date', async () => {
+    const ctx = new FakeDurableObjectState();
+    const skippedDateSocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-07',
+    });
+    const todaySocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-08',
+    });
+    const room = new FamilyBoard(ctx as never, { DB: {} } as never);
+
+    ctx.acceptWebSocket(skippedDateSocket);
+    ctx.acceptWebSocket(todaySocket);
+    getFamilyBoardState.mockImplementation(
+      async (_db: unknown, _familyId: string, date: string) => ({
+        ...exampleState,
+        day: {
+          date,
+          is_sunday: false,
+        },
+        people: exampleState.people.map((personState) => ({
+          ...personState,
+          skip_day:
+            date === '2026-04-07'
+              ? {
+                  id: 'skip-2026-04-07',
+                  family_id: 'family-maple',
+                  date,
+                  reason: null,
+                  created_at: '2026-04-08T12:00:00Z',
+                }
+              : null,
+        })),
+      }),
+    );
+
+    await room.webSocketMessage(
+      skippedDateSocket as unknown as WebSocket,
+      JSON.stringify({
+        type: 'skip_day_toggled',
+        date: '2026-04-07',
+        skipped: true,
+      }),
+    );
+
+    expect(toggleSkipDay).toHaveBeenCalledWith(
+      {},
+      {
+        familyId: 'family-maple',
+        date: '2026-04-07',
+        skipped: true,
+      },
+    );
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      1,
+      {},
+      'family-maple',
+      '2026-04-07',
+    );
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      2,
+      {},
+      'family-maple',
+      '2026-04-08',
+    );
+    expect(JSON.parse(skippedDateSocket.sent[0] ?? '{}')).toEqual({
+      type: 'state_update',
+      state: {
+        ...exampleState,
+        day: {
+          date: '2026-04-07',
+          is_sunday: false,
+        },
+        people: exampleState.people.map((personState) => ({
+          ...personState,
+          skip_day: {
+            id: 'skip-2026-04-07',
+            family_id: 'family-maple',
+            date: '2026-04-07',
+            reason: null,
+            created_at: '2026-04-08T12:00:00Z',
+          },
+        })),
+      },
+    });
+    expect(JSON.parse(todaySocket.sent[0] ?? '{}')).toEqual({
+      type: 'state_update',
+      state: {
+        ...exampleState,
+        day: {
+          date: '2026-04-08',
           is_sunday: false,
         },
       },
@@ -337,7 +445,7 @@ describe('FamilyBoard durable object', () => {
     expect(tomorrowSocket.sent).toHaveLength(0);
   });
 
-  it('persists a toggle and broadcasts the resulting state update to connected clients', async () => {
+  it('persists a task toggle and broadcasts refreshed state to affected later viewed dates', async () => {
     const ctx = new FakeDurableObjectState();
     const firstSocket = new FakeWebSocket({
       familyId: 'family-maple',
@@ -345,14 +453,22 @@ describe('FamilyBoard durable object', () => {
     });
     const secondSocket = new FakeWebSocket({
       familyId: 'family-maple',
-      date: '2026-04-07',
+      date: '2026-04-08',
     });
     const room = new FamilyBoard(ctx as never, { DB: {} } as never);
 
     ctx.acceptWebSocket(firstSocket);
     ctx.acceptWebSocket(secondSocket);
     toggleTaskCompletion.mockResolvedValue(undefined);
-    getFamilyBoardState.mockResolvedValue(exampleState);
+    getFamilyBoardState.mockImplementation(
+      async (_db: unknown, _familyId: string, date: string) => ({
+        ...exampleState,
+        day: {
+          date,
+          is_sunday: false,
+        },
+      }),
+    );
 
     await room.webSocketMessage(
       firstSocket as unknown as WebSocket,
@@ -373,22 +489,41 @@ describe('FamilyBoard durable object', () => {
         completed: true,
       },
     );
-    expect(getFamilyBoardState).toHaveBeenCalledWith(
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      1,
       {},
       'family-maple',
       '2026-04-07',
     );
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      2,
+      {},
+      'family-maple',
+      '2026-04-08',
+    );
     expect(JSON.parse(firstSocket.sent[0] ?? '{}')).toEqual({
       type: 'state_update',
-      state: exampleState,
+      state: {
+        ...exampleState,
+        day: {
+          date: '2026-04-07',
+          is_sunday: false,
+        },
+      },
     });
     expect(JSON.parse(secondSocket.sent[0] ?? '{}')).toEqual({
       type: 'state_update',
-      state: exampleState,
+      state: {
+        ...exampleState,
+        day: {
+          date: '2026-04-08',
+          is_sunday: false,
+        },
+      },
     });
   });
 
-  it('does not broadcast a day update to sockets viewing a different date', async () => {
+  it('does not broadcast a retroactive task toggle to sockets viewing earlier dates', async () => {
     const ctx = new FakeDurableObjectState();
     const todaySocket = new FakeWebSocket({
       familyId: 'family-maple',
@@ -417,6 +552,41 @@ describe('FamilyBoard durable object', () => {
 
     expect(todaySocket.sent).toHaveLength(1);
     expect(yesterdaySocket.sent).toHaveLength(0);
+  });
+
+  it('keeps the websocket open when a skip-day write succeeds but a viewed-date refresh fails', async () => {
+    const ctx = new FakeDurableObjectState();
+    const socket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-07',
+    });
+    const room = new FamilyBoard(ctx as never, { DB: {} } as never);
+
+    ctx.acceptWebSocket(socket);
+    toggleSkipDay.mockResolvedValue(undefined);
+    getFamilyBoardState.mockRejectedValue(
+      new Error('Board refresh failed after write.'),
+    );
+
+    await room.webSocketMessage(
+      socket as unknown as WebSocket,
+      JSON.stringify({
+        type: 'skip_day_toggled',
+        date: '2026-04-07',
+        skipped: true,
+      }),
+    );
+
+    expect(toggleSkipDay).toHaveBeenCalledWith(
+      {},
+      {
+        familyId: 'family-maple',
+        date: '2026-04-07',
+        skipped: true,
+      },
+    );
+    expect(socket.closed).toBeUndefined();
+    expect(socket.sent).toHaveLength(0);
   });
 
   it('rejects realtime toggles beyond tomorrow before mutating state', async () => {

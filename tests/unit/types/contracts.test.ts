@@ -15,6 +15,7 @@ import {
   scheduleRulesSchema,
   serverWebSocketMessageSchema,
   skipDaySchema,
+  skipDayToggledMessageSchema,
   stateUpdateMessageSchema,
   streakSchema,
   taskCompletionSchema,
@@ -271,6 +272,11 @@ describe('shared type contracts', () => {
       task_id: 'task-piano',
       completed: true,
     } as const;
+    const skipDayToggled = {
+      type: 'skip_day_toggled',
+      date: '2026-04-07',
+      skipped: true,
+    } as const;
 
     const stateUpdate = {
       type: 'state_update',
@@ -284,6 +290,15 @@ describe('shared type contracts', () => {
       taskToggled,
     );
     expect(webSocketMessageSchema.parse(taskToggled)).toEqual(taskToggled);
+    expect(skipDayToggledMessageSchema.parse(skipDayToggled)).toEqual(
+      skipDayToggled,
+    );
+    expect(clientWebSocketMessageSchema.parse(skipDayToggled)).toEqual(
+      skipDayToggled,
+    );
+    expect(webSocketMessageSchema.parse(skipDayToggled)).toEqual(
+      skipDayToggled,
+    );
     expect(initResponseSchema.parse(initResponse)).toEqual(initResponse);
     expect(serverWebSocketMessageSchema.parse(initResponse)).toEqual(
       initResponse,
@@ -318,10 +333,10 @@ describe('shared type contracts', () => {
     ).toBe(false);
 
     expect(
-      webSocketMessageSchema.safeParse({
+      serverWebSocketMessageSchema.safeParse({
         type: 'skip_day_toggled',
         date: '2026-04-07',
-        skip_day: exampleSkipDay,
+        skipped: true,
       }).success,
     ).toBe(false);
 

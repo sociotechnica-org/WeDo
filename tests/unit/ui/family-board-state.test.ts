@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { familyBoardStateSchema } from '@/types';
 import {
   createReadyFamilyBoardState,
+  findBoardSkipDay,
   findTaskCompletionStatus,
   getRealtimeCloseMessage,
   getRealtimeErrorMessage,
   isReadyBoardViewFor,
+  toggleSkipDayInBoard,
   toggleTaskCompletionInBoard,
   withBoardSnapshot,
+  withOptimisticSkipDay,
   withOptimisticTaskToggle,
   withRealtimeIssue,
 } from '@/ui/hooks/family-board-state';
@@ -139,7 +142,11 @@ describe('family-board-state helpers', () => {
   });
 
   it('matches only the ready state for the same family and viewed day', () => {
-    const readyState = createReadyFamilyBoardState(board, 'River House', todayDate);
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
 
     expect(isReadyBoardViewFor(readyState, 'family-maple', '2026-04-08')).toBe(
       true,
@@ -191,6 +198,39 @@ describe('family-board-state helpers', () => {
       ),
     ).toBeNull();
     expect(findTaskCompletionStatus(board, 'task-missing')).toBeNull();
+  });
+
+  it('applies an optimistic skip day to every person on the current board snapshot', () => {
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+    const optimisticState = withOptimisticSkipDay(
+      readyState,
+      true,
+      '2026-04-08T14:00:00Z',
+    );
+
+    expect(findBoardSkipDay(optimisticState.board)).toEqual({
+      id: 'optimistic:skip-day:2026-04-08',
+      family_id: 'family-maple',
+      date: '2026-04-08',
+      reason: null,
+      created_at: '2026-04-08T14:00:00Z',
+    });
+  });
+
+  it('clears an optimistic skip day from every person on the current board snapshot', () => {
+    const skippedBoard = toggleSkipDayInBoard(
+      board,
+      true,
+      '2026-04-08T14:00:00Z',
+    );
+
+    expect(
+      findBoardSkipDay(toggleSkipDayInBoard(skippedBoard, false, 'unused')),
+    ).toBeNull();
   });
 
   it('returns initialization-aware websocket failure copy', () => {

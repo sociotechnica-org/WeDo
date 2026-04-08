@@ -4,6 +4,7 @@ import { getRuntimeConfig } from '@/config/runtime';
 import type { WorkerBindings } from '@/config/runtime';
 import {
   clientWebSocketMessageSchema,
+  compareIsoDates,
   createTaskMutationSchema,
   createTaskResponseSchema,
   initResponseSchema,
@@ -15,6 +16,7 @@ import {
   createRecurringTask,
   FamilyBoardStateError,
   getFamilyBoardState,
+  toggleSkipDay,
   toggleTaskCompletion,
 } from '@/services/family-board-service';
 import { resolveBoardDate } from '@/services/board-service';
@@ -100,7 +102,9 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
   }
 
   private async getStateUpdateMessage(familyId: string, date: IsoDate) {
-    return toStateUpdate(await getFamilyBoardState(this.env.DB, familyId, date));
+    return toStateUpdate(
+      await getFamilyBoardState(this.env.DB, familyId, date),
+    );
   }
 
   private getViewedDatesForFamily(familyId: string): IsoDate[] {
@@ -119,28 +123,15 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
     return [...dates];
   }
 
-  private async broadcastStateForDate(
-    familyId: string,
-    date: IsoDate,
-  ): Promise<void> {
-    const update = await this.getStateUpdateMessage(familyId, date);
-
-    for (const connection of this.ctx.getWebSockets()) {
-      const attachment = tryGetSocketAttachment(connection);
-
-      if (!attachment || attachment.familyId !== familyId || attachment.date !== date) {
-        continue;
-      }
-
-      this.sendMessage(connection, update);
-    }
-  }
-
   private async broadcastStateForViewedDates(
     familyId: string,
     seededUpdatesByDate: ReadonlyMap<IsoDate, string> = new Map(),
+    minimumDate?: IsoDate,
   ): Promise<void> {
-    const viewedDates = this.getViewedDatesForFamily(familyId);
+    const viewedDates = this.getViewedDatesForFamily(familyId).filter(
+      (date) =>
+        minimumDate === undefined || compareIsoDates(date, minimumDate) >= 0,
+    );
 
     if (viewedDates.length === 0) {
       return;
@@ -154,7 +145,10 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
       }
 
       try {
-        updatesByDate.set(date, await this.getStateUpdateMessage(familyId, date));
+        updatesByDate.set(
+          date,
+          await this.getStateUpdateMessage(familyId, date),
+        );
       } catch {
         // A secondary broadcast failure must not turn a successful D1 write
         // into a failed mutation response.
@@ -301,7 +295,35 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
             completed: payload.completed,
           });
 
-          await this.broadcastStateForDate(familyId, resolvedDate);
+          await this.broadcastStateForViewedDates(
+            familyId,
+            new Map(),
+            resolvedDate,
+          );
+          return;
+        }
+        case 'skip_day_toggled': {
+          const runtime = getRuntimeConfig(this.env);
+          const resolvedDate = resolveBoardDate(runtime.timezone, payload.date);
+
+          if (resolvedDate !== payload.date) {
+            throw new FamilyBoardStateError(
+              'Realtime requests cannot target a day beyond tomorrow.',
+            );
+          }
+
+          await toggleSkipDay(this.env.DB, {
+            familyId,
+            date: resolvedDate,
+            skipped: payload.skipped,
+          });
+
+          await this.broadcastStateForViewedDates(
+            familyId,
+            new Map(),
+            resolvedDate,
+          );
+          return;
         }
       }
     } catch (error) {

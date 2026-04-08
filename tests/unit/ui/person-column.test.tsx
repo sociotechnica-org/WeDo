@@ -63,6 +63,28 @@ describe('PersonColumn', () => {
     expect(markup).toContain('No tasks today.');
   });
 
+  it('marks skipped-day task lists for the dimmed dashboard treatment', () => {
+    const markup = renderToStaticMarkup(
+      <PersonColumn
+        paletteIndex={1}
+        personState={{
+          ...personState,
+          skip_day: {
+            id: 'skip-2026-04-08',
+            family_id: 'family-maple',
+            date: '2026-04-08',
+            reason: null,
+            created_at: '2026-04-08T09:00:00Z',
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain('data-skipped="true"');
+    expect(markup).toContain('data-testid="person-task-list"');
+    expect(markup).toContain('opacity-55');
+  });
+
   it('uses quiet zero-state streak copy instead of a numeric zero streak', () => {
     const markup = renderToStaticMarkup(
       <PersonColumn

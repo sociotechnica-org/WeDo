@@ -6,7 +6,11 @@ import { buildDayHref } from '@/ui/lib/day-navigation';
 import { useReadyBoard } from '@/ui/routes/use-ready-board';
 
 export function DashboardRoute() {
-  const { board, householdName, realtime, todayDate } = useReadyBoard();
+  const { board, householdName, realtime, todayDate, toggleSkipDay } =
+    useReadyBoard();
+  const isSkipped = board.people.some(
+    (personState) => personState.skip_day !== null,
+  );
 
   return (
     <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
@@ -25,7 +29,13 @@ export function DashboardRoute() {
               </p>
             </div>
 
-            <DayNavigation currentDate={board.day.date} todayDate={todayDate} />
+            <DayNavigation
+              currentDate={board.day.date}
+              isSkipped={isSkipped}
+              onToggleSkipDay={toggleSkipDay}
+              skipToggleDisabled={realtime.status !== 'live'}
+              todayDate={todayDate}
+            />
 
             <div className="justify-self-start md:justify-self-end">
               <button

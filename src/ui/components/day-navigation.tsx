@@ -11,6 +11,9 @@ import { formatDayLabel } from '@/ui/lib/format-day-label';
 type DayNavigationProps = {
   currentDate: IsoDate;
   todayDate: IsoDate;
+  isSkipped: boolean;
+  onToggleSkipDay: () => boolean;
+  skipToggleDisabled?: boolean;
 };
 
 function arrowClassName(disabled = false) {
@@ -22,11 +25,18 @@ function arrowClassName(disabled = false) {
   ].join(' ');
 }
 
-export function DayNavigation({ currentDate, todayDate }: DayNavigationProps) {
+export function DayNavigation({
+  currentDate,
+  todayDate,
+  isSkipped,
+  onToggleSkipDay,
+  skipToggleDisabled = false,
+}: DayNavigationProps) {
   const location = useLocation();
   const previousDate = getPreviousDay(currentDate);
   const nextDate = getNextDay(currentDate);
   const nextDisabled = isAtTomorrowLimit(currentDate, todayDate);
+  const skipToggleLabel = currentDate === todayDate ? 'SKIP TODAY' : 'SKIP DAY';
 
   return (
     <div
@@ -46,12 +56,26 @@ export function DayNavigation({ currentDate, todayDate }: DayNavigationProps) {
         <p className="scribe-label text-[0.62rem] uppercase tracking-[0.34em] text-[var(--color-ink-soft)]">
           Day
         </p>
-        <p
-          className="mt-1 truncate text-xl text-[var(--color-ink)] lg:text-2xl"
-          data-testid="day-label"
-        >
-          {formatDayLabel(currentDate)}
-        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-3 sm:justify-center">
+          <p
+            className={`truncate text-xl text-[var(--color-ink)] transition-all duration-200 lg:text-2xl ${isSkipped ? 'line-through decoration-[rgba(87,72,58,0.58)] decoration-[1.5px]' : ''}`}
+            data-skipped={isSkipped ? 'true' : 'false'}
+            data-testid="day-label"
+          >
+            {formatDayLabel(currentDate)}
+          </p>
+          <button
+            aria-label={`Toggle skip day for ${formatDayLabel(currentDate)}`}
+            aria-pressed={isSkipped}
+            className={`scribe-label inline-flex items-center rounded-full border px-3 py-2 text-[0.62rem] uppercase tracking-[0.28em] transition-colors duration-200 ${isSkipped ? 'border-[rgba(87,72,58,0.16)] bg-[rgba(138,167,184,0.18)] text-[var(--color-ink)] shadow-[0_8px_18px_rgba(82,65,48,0.05)]' : 'border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.72)] text-[var(--color-ink-soft)] shadow-[0_8px_18px_rgba(82,65,48,0.04)]'} disabled:cursor-not-allowed disabled:opacity-55`}
+            data-testid="day-skip-toggle"
+            disabled={skipToggleDisabled}
+            onClick={onToggleSkipDay}
+            type="button"
+          >
+            {skipToggleLabel}
+          </button>
+        </div>
       </div>
 
       {nextDisabled ? (

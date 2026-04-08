@@ -21,6 +21,7 @@ const readyBoardState = {
     message: 'The board is still visible, but live updates are paused.',
   },
   createTask: vi.fn(),
+  toggleSkipDay: vi.fn(),
   toggleTask: vi.fn(),
   board: {
     family_id: 'family-maple',
@@ -95,6 +96,8 @@ describe('Board routes', () => {
     expect(markup).toContain('aria-label="Go to previous day"');
     expect(markup).toContain('href="/?day=2026-04-06"');
     expect(markup).toContain('href="/"');
+    expect(markup).toContain('data-testid="day-skip-toggle"');
+    expect(markup).toContain('SKIP DAY');
   });
 
   it('renders the focused single-list route with back navigation and add-task affordance', () => {
@@ -107,5 +110,34 @@ describe('Board routes', () => {
     expect(markup).toContain('Add task');
     expect(markup).toContain('Toggle Kitchen reset');
     expect(markup).toContain('0 of 1 tasks marked for this day.');
+    expect(markup).toContain('data-testid="single-list-task-list"');
+  });
+
+  it('renders skipped-day state in both the day label and dashboard task lists', () => {
+    useFamilyBoardMock.mockReturnValue({
+      ...readyBoardState,
+      realtime: {
+        status: 'live' as const,
+      },
+      board: {
+        ...readyBoardState.board,
+        people: readyBoardState.board.people.map((personState) => ({
+          ...personState,
+          skip_day: {
+            id: 'skip-2026-04-07',
+            family_id: 'family-maple',
+            date: '2026-04-07',
+            reason: null,
+            created_at: '2026-04-07T07:00:00Z',
+          },
+        })),
+      },
+    });
+
+    const markup = renderRoute('/?day=2026-04-07');
+
+    expect(markup).toContain('data-skipped="true"');
+    expect(markup).toContain('line-through');
+    expect(markup).toContain('aria-pressed="true"');
   });
 });

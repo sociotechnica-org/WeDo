@@ -169,7 +169,44 @@ test('creates a task from natural language in the focused single-list view', asy
   await page.getByLabel('Add task').fill('practice piano every day');
   await page.getByRole('button', { name: 'Create task' }).click();
 
-  await expect(page.getByText('Task added to the recurring schedule.')).toBeVisible();
+  await expect(
+    page.getByText('Task added to the recurring schedule.'),
+  ).toBeVisible();
   await expect(page.getByText('Practice piano')).toBeVisible();
-  await expect(page.getByText('0 of 2 tasks marked for this day.')).toBeVisible();
+  await expect(
+    page.getByText('0 of 2 tasks marked for this day.'),
+  ).toBeVisible();
+});
+
+test('toggles the current day into a skipped, dimmed state and can clear it again', async ({
+  page,
+}) => {
+  await page.setViewportSize({
+    width: 1180,
+    height: 820,
+  });
+
+  await page.goto('/');
+
+  const skipToggle = page.getByTestId('day-skip-toggle');
+  const dayLabel = page.getByTestId('day-label');
+  const firstColumn = page.getByTestId('person-column').first();
+
+  await expect(skipToggle).toHaveText('SKIP TODAY');
+  await skipToggle.click();
+
+  await expect(skipToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(dayLabel).toHaveAttribute('data-skipped', 'true');
+  await expect(firstColumn).toHaveAttribute('data-skipped', 'true');
+
+  await page.reload();
+
+  await expect(skipToggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(dayLabel).toHaveAttribute('data-skipped', 'true');
+
+  await skipToggle.click();
+
+  await expect(skipToggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(dayLabel).toHaveAttribute('data-skipped', 'false');
+  await expect(firstColumn).toHaveAttribute('data-skipped', 'false');
 });
