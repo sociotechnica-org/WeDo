@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   boardResponseSchema,
   serverWebSocketMessageSchema,
   type BoardResponse,
   type InitRequest,
   type ServerWebSocketMessage,
+  type TaskToggledMessage,
 } from '@/types';
 import {
   createReadyFamilyBoardState,
+  findTaskCompletionStatus,
   getRealtimeCloseMessage,
   getRealtimeErrorMessage,
   type FamilyBoardViewState,
+  withOptimisticTaskToggle,
   withRealtimeIssue,
 } from './family-board-state';
 
@@ -40,10 +43,76 @@ export function useFamilyBoard() {
   const [state, setState] = useState<FamilyBoardViewState>({
     status: 'loading',
   });
+  const socketRef = useRef<WebSocket | null>(null);
+  const stateRef = useRef<FamilyBoardViewState>(state);
+
+  const commitState = useCallback((nextState: FamilyBoardViewState) => {
+    stateRef.current = nextState;
+    setState(nextState);
+  }, []);
+
+  const toggleTask = useCallback((taskId: string): boolean => {
+    const currentState = stateRef.current;
+
+    if (currentState.status !== 'ready') {
+      return false;
+    }
+
+    const currentCompletion = findTaskCompletionStatus(currentState.board, taskId);
+
+    if (currentCompletion === null) {
+      return false;
+    }
+
+    const socket = socketRef.current;
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      commitState(
+        withRealtimeIssue(
+          currentState,
+          'The board is still visible, but live updates are paused.',
+        ),
+      );
+
+      return false;
+    }
+
+    const completedAt = new Date().toISOString();
+    const optimisticState = withOptimisticTaskToggle(
+      currentState,
+      taskId,
+      completedAt,
+    );
+
+    if (!optimisticState) {
+      return false;
+    }
+
+    const message = {
+      type: 'task_toggled',
+      date: currentState.board.day.date,
+      task_id: taskId,
+      completed: !currentCompletion,
+    } satisfies TaskToggledMessage;
+
+    commitState(optimisticState);
+
+    try {
+      socket.send(JSON.stringify(message));
+      return true;
+    } catch {
+      commitState(
+        withRealtimeIssue(
+          currentState,
+          'The board is still visible, but live updates are paused.',
+        ),
+      );
+      return false;
+    }
+  }, [commitState]);
 
   useEffect(() => {
     const controller = new AbortController();
-    let socket: WebSocket | undefined;
     let isDisposed = false;
     let hasInitialized = false;
 
@@ -67,7 +136,11 @@ export function useFamilyBoard() {
           return;
         }
 
-        socket = new WebSocket(buildSocketUrl(bootstrap.board.familyId).toString());
+        const socket = new WebSocket(
+          buildSocketUrl(bootstrap.board.familyId).toString(),
+        );
+
+        socketRef.current = socket;
 
         socket.addEventListener('open', () => {
           const initMessage = {
@@ -75,7 +148,7 @@ export function useFamilyBoard() {
             date: bootstrap.board.date,
           } satisfies InitRequest;
 
-          socket?.send(JSON.stringify(initMessage));
+          socket.send(JSON.stringify(initMessage));
         });
 
         socket.addEventListener('message', (event) => {
@@ -93,10 +166,11 @@ export function useFamilyBoard() {
                 return;
               }
 
-              setState(
+              commitState(
                 createReadyFamilyBoardState(
                   payload.state,
                   bootstrap.board.householdName,
+                  toggleTask,
                 ),
               );
             } catch (error) {
@@ -110,14 +184,11 @@ export function useFamilyBoard() {
                   : 'Unexpected realtime payload.';
 
               if (hasInitialized) {
-                setState((currentState) =>
-                  withRealtimeIssue(currentState, message),
-                );
-
+                commitState(withRealtimeIssue(stateRef.current, message));
                 return;
               }
 
-              setState({
+              commitState({
                 status: 'error',
                 message,
               });
@@ -133,12 +204,11 @@ export function useFamilyBoard() {
           const message = getRealtimeErrorMessage(hasInitialized);
 
           if (hasInitialized) {
-            setState((currentState) => withRealtimeIssue(currentState, message));
-
+            commitState(withRealtimeIssue(stateRef.current, message));
             return;
           }
 
-          setState({
+          commitState({
             status: 'error',
             message,
           });
@@ -151,13 +221,16 @@ export function useFamilyBoard() {
 
           const message = getRealtimeCloseMessage(event.reason, hasInitialized);
 
-          if (hasInitialized) {
-            setState((currentState) => withRealtimeIssue(currentState, message));
+          if (socketRef.current === socket) {
+            socketRef.current = null;
+          }
 
+          if (hasInitialized) {
+            commitState(withRealtimeIssue(stateRef.current, message));
             return;
           }
 
-          setState({
+          commitState({
             status: 'error',
             message,
           });
@@ -172,7 +245,7 @@ export function useFamilyBoard() {
             ? error.message
             : 'Unknown board loading error.';
 
-        setState({
+        commitState({
           status: 'error',
           message,
         });
@@ -184,9 +257,12 @@ export function useFamilyBoard() {
     return () => {
       isDisposed = true;
       controller.abort();
-      socket?.close();
+      socketRef.current?.close();
+      socketRef.current = null;
     };
-  }, []);
+  }, [commitState, toggleTask]);
 
   return state;
 }
+
+export type { ReadyFamilyBoardViewState } from './family-board-state';
