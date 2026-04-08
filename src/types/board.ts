@@ -1,32 +1,19 @@
 import { z } from 'zod';
+import { identifierSchema, isoDateSchema, nonEmptyStringSchema } from './shared';
 
-export const taskCardSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  note: z.string().min(1),
-  completed: z.boolean(),
-});
+export const boardBootstrapSchema = z
+  .object({
+    familyId: identifierSchema,
+    householdName: nonEmptyStringSchema,
+    date: isoDateSchema,
+  })
+  .strict();
 
-export const personColumnSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  ink: z.string().min(1),
-  wash: z.string().min(1),
-  completionRatio: z.number().min(0).max(1),
-  tasks: z.array(taskCardSchema).min(1),
-});
+export const boardResponseSchema = z
+  .object({
+    board: boardBootstrapSchema,
+  })
+  .strict();
 
-export const boardSnapshotSchema = z.object({
-  dayLabel: z.string().min(1),
-  householdName: z.string().min(1),
-  columns: z.array(personColumnSchema).min(1),
-});
-
-export const boardResponseSchema = z.object({
-  board: boardSnapshotSchema,
-});
-
-export type TaskCard = z.infer<typeof taskCardSchema>;
-export type PersonColumn = z.infer<typeof personColumnSchema>;
-export type BoardSnapshot = z.infer<typeof boardSnapshotSchema>;
+export type BoardBootstrap = z.infer<typeof boardBootstrapSchema>;
 export type BoardResponse = z.infer<typeof boardResponseSchema>;
