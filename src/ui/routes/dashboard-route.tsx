@@ -38,13 +38,12 @@ export function DashboardRoute() {
             />
 
             <div className="justify-self-start md:justify-self-end">
-              <button
-                className="rounded-full border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.66)] px-4 py-2 text-sm tracking-[0.14em] text-[var(--color-ink-soft)] shadow-[0_10px_24px_rgba(82,65,48,0.04)]"
-                disabled
-                type="button"
+              <Link
+                className="inline-flex rounded-full border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.66)] px-4 py-2 text-sm tracking-[0.14em] text-[var(--color-ink-soft)] shadow-[0_10px_24px_rgba(82,65,48,0.04)]"
+                to={buildDayHref('/settings', board.day.date, todayDate)}
               >
                 Settings
-              </button>
+              </Link>
             </div>
           </div>
         </header>

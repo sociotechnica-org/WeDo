@@ -10,6 +10,7 @@ vi.mock('@/ui/hooks/use-family-board', () => ({
 
 import { BoardRoute } from '@/ui/routes/board-route';
 import { DashboardRoute } from '@/ui/routes/dashboard-route';
+import { SettingsRoute } from '@/ui/routes/settings-route';
 import { SingleListRoute } from '@/ui/routes/single-list-route';
 
 const readyBoardState = {
@@ -22,6 +23,7 @@ const readyBoardState = {
   },
   createTask: vi.fn(),
   deleteTask: vi.fn(),
+  savePersons: vi.fn(),
   toggleSkipDay: vi.fn(),
   toggleTask: vi.fn(),
   board: {
@@ -74,6 +76,7 @@ function renderRoute(entry: string) {
         <Route element={<BoardRoute />} path="/">
           <Route element={<DashboardRoute />} index />
           <Route element={<SingleListRoute />} path="people/:personId" />
+          <Route element={<SettingsRoute />} path="settings" />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -94,6 +97,7 @@ describe('Board routes', () => {
     expect(markup).toContain('Kitchen reset');
     expect(useFamilyBoardMock).toHaveBeenCalledWith('2026-04-07');
     expect(markup).toContain('href="/people/person-jess?day=2026-04-07"');
+    expect(markup).toContain('href="/settings?day=2026-04-07"');
     expect(markup).toContain('aria-label="Go to previous day"');
     expect(markup).toContain('href="/?day=2026-04-06"');
     expect(markup).toContain('href="/"');
@@ -108,6 +112,7 @@ describe('Board routes', () => {
 
     expect(markup).toContain('Focused list');
     expect(markup).toContain('href="/?day=2026-04-07"');
+    expect(markup).toContain('href="/settings?day=2026-04-07"');
     expect(markup).toContain('Add task');
     expect(markup).toContain('Toggle Kitchen reset');
     expect(markup).not.toContain('Delete Kitchen reset');
@@ -149,5 +154,18 @@ describe('Board routes', () => {
     expect(markup).toContain('data-skipped="true"');
     expect(markup).toContain('line-through');
     expect(markup).toContain('aria-pressed="true"');
+  });
+
+  it('renders the settings route with the current people and a save affordance', () => {
+    useFamilyBoardMock.mockReturnValue(readyBoardState);
+
+    const markup = renderRoute('/settings?day=2026-04-07');
+
+    expect(markup).toContain('Person management');
+    expect(markup).toContain('Back to dashboard');
+    expect(markup).toContain('Save settings');
+    expect(markup).toContain('Jess');
+    expect(markup).toContain('🌿');
+    expect(markup).toContain('data-testid="settings-person-list"');
   });
 });

@@ -1,6 +1,7 @@
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { BoardRoute } from '@/ui/routes/board-route';
 import { DashboardRoute } from '@/ui/routes/dashboard-route';
+import { SettingsRoute } from '@/ui/routes/settings-route';
 import { SingleListRoute } from '@/ui/routes/single-list-route';
 
 const router = createBrowserRouter([
@@ -15,6 +16,10 @@ const router = createBrowserRouter([
       {
         path: 'people/:personId',
         element: <SingleListRoute />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsRoute />,
       },
     ],
   },

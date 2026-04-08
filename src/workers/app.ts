@@ -4,6 +4,7 @@ import {
   getBoardResponse,
 } from '@/services/board-service';
 import type { WorkerBindings } from '@/config/runtime';
+import { registerPersonRoutes } from '@/workers/routes/persons';
 import { registerTaskRoutes } from '@/workers/routes/tasks';
 import {
   boardRequestQuerySchema,
@@ -61,6 +62,7 @@ export function createApp() {
   });
 
   registerTaskRoutes(app);
+  registerPersonRoutes(app);
 
   return app;
 }
