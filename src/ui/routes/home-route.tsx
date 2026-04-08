@@ -1,19 +1,28 @@
 import { PersonColumn } from '@/ui/components/person-column';
-import { useBoardSnapshot } from '@/ui/hooks/use-board-snapshot';
+import { useFamilyBoard } from '@/ui/hooks/use-family-board';
+
+function formatDayLabel(date: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T12:00:00Z`));
+}
 
 export function HomeRoute() {
-  const boardState = useBoardSnapshot();
+  const boardState = useFamilyBoard();
 
   if (boardState.status === 'loading') {
     return (
       <main className="paper-canvas grid min-h-screen place-items-center px-6 py-10">
         <div className="paper-panel max-w-xl rounded-[2rem] px-8 py-10 text-center shadow-[0_24px_60px_rgba(82,65,48,0.10)]">
           <p className="scribe-label text-sm uppercase tracking-[0.35em] text-[var(--color-ink-soft)]">
-            Setting the board
+            Opening the board
           </p>
           <h1 className="mt-4 text-5xl text-[var(--color-ink)]">WeDo</h1>
           <p className="mt-4 text-lg text-[var(--color-ink-soft)]">
-            Ink is drying on today&apos;s household page.
+            Pulling today&apos;s household page into view.
           </p>
         </div>
       </main>
@@ -36,40 +45,53 @@ export function HomeRoute() {
     );
   }
 
-  const { board } = boardState;
+  const { board, householdName } = boardState;
 
   return (
-    <main className="paper-canvas min-h-screen px-6 py-8 md:px-10 md:py-10">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8">
-        <header className="paper-panel overflow-hidden rounded-[2.5rem] px-8 py-8 shadow-[0_24px_60px_rgba(82,65,48,0.10)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,169,201,0.16),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(202,176,151,0.18),transparent_44%)]" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
+      <div className="mx-auto flex max-w-[90rem] flex-col gap-5">
+        <header className="paper-panel rounded-[2.2rem] border border-[rgba(87,72,58,0.08)] px-5 py-5 shadow-[0_18px_36px_rgba(82,65,48,0.06)] md:px-7 lg:px-8">
+          <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr] md:items-center">
             <div>
-              <p className="scribe-label text-xs uppercase tracking-[0.4em] text-[var(--color-ink-soft)]">
-                Shared family daily task board
+              <p className="scribe-label text-[0.68rem] uppercase tracking-[0.38em] text-[var(--color-ink-soft)]">
+                Shared family board
               </p>
-              <h1 className="mt-3 text-6xl leading-none text-[var(--color-ink)] md:text-7xl">
+              <h1 className="mt-2 text-5xl leading-none text-[var(--color-ink)] lg:text-6xl">
                 WeDo
               </h1>
-              <p className="mt-4 max-w-2xl text-lg leading-8 text-[var(--color-ink-soft)]">
-                {board.householdName} keeps the day in one place: visible, calm,
-                and lightly marked by whoever was there.
+              <p className="mt-3 text-[0.98rem] leading-6 text-[var(--color-ink-soft)] lg:max-w-sm">
+                {householdName} stays visible in one calm glance.
               </p>
             </div>
-            <div className="rounded-[1.7rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(255,252,247,0.72)] px-5 py-4 text-right shadow-[0_12px_24px_rgba(82,65,48,0.06)]">
-              <p className="scribe-label text-xs uppercase tracking-[0.32em] text-[var(--color-ink-soft)]">
-                Day frame
+
+            <div className="justify-self-start rounded-[1.5rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(255,252,247,0.78)] px-4 py-3 text-left shadow-[0_10px_24px_rgba(82,65,48,0.05)] md:justify-self-center md:text-center">
+              <p className="scribe-label text-[0.62rem] uppercase tracking-[0.34em] text-[var(--color-ink-soft)]">
+                Today
               </p>
-              <p className="mt-2 text-2xl text-[var(--color-ink)]">
-                {board.dayLabel}
+              <p className="mt-1 text-xl text-[var(--color-ink)] lg:text-2xl">
+                {formatDayLabel(board.day.date)}
               </p>
+            </div>
+
+            <div className="justify-self-start md:justify-self-end">
+              <button
+                className="rounded-full border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.66)] px-4 py-2 text-sm tracking-[0.14em] text-[var(--color-ink-soft)] shadow-[0_10px_24px_rgba(82,65,48,0.04)]"
+                disabled
+                type="button"
+              >
+                Settings
+              </button>
             </div>
           </div>
         </header>
 
-        <section className="grid gap-6 xl:grid-cols-3">
-          {board.columns.map((column) => (
-            <PersonColumn key={column.id} column={column} />
+        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+          {board.people.map((personState, index) => (
+            <PersonColumn
+              key={personState.person.id}
+              paletteIndex={index}
+              personState={personState}
+            />
           ))}
         </section>
       </div>

@@ -19,8 +19,8 @@ export function createApp() {
     );
   });
 
-  app.get('/api/board', (context) => {
-    return context.json(getBoardResponse(context.env));
+  app.get('/api/board', async (context) => {
+    return context.json(await getBoardResponse(context.env));
   });
 
   app.get('/api/realtime/:familyId', async (context) => {

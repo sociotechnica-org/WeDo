@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getRuntimeConfig } from '@/config/runtime';
 import {
+  boardResponseSchema,
   clientWebSocketMessageSchema,
   dayCodeSchema,
   familyBoardStateSchema,
@@ -101,6 +102,21 @@ describe('shared type contracts', () => {
     expect(familyBoardStateSchema.parse(exampleFamilyBoardState)).toEqual(
       exampleFamilyBoardState,
     );
+    expect(
+      boardResponseSchema.parse({
+        board: {
+          familyId: 'family-maple',
+          householdName: 'Maple House',
+          date: '2026-04-07',
+        },
+      }),
+    ).toEqual({
+      board: {
+        familyId: 'family-maple',
+        householdName: 'Maple House',
+        date: '2026-04-07',
+      },
+    });
   });
 
   it('accepts valid schedule rules and RFC 5545 day codes', () => {
