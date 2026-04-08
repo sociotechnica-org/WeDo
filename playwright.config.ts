@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
+  workers: 1,
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'on-first-retry',
@@ -10,7 +11,7 @@ export default defineConfig({
   webServer: {
     command:
       'npm run db:migrate:local && npm run db:seed:local && npm run dev -- --host 127.0.0.1 --port 4173',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 120_000,
     url: 'http://127.0.0.1:4173',
   },

@@ -1,5 +1,10 @@
+import type { TaskParserConfig } from '@/config/runtime';
 import { z } from 'zod';
-import { parsedTaskSchema, type ParsedTask } from '@/types';
+import {
+  parsedTaskSchema,
+  type DayCode,
+  type ParsedTask,
+} from '@/types';
 
 const anthropicMessageResponseSchema = z
   .object({
@@ -30,6 +35,27 @@ const anthropicVersion = '2023-06-01';
 const anthropicModel = 'claude-sonnet-4-6';
 
 export class NlTaskParserError extends Error {}
+
+const weekdayDayCodes = ['MO', 'TU', 'WE', 'TH', 'FR'] satisfies DayCode[];
+const allDayCodes = [
+  'MO',
+  'TU',
+  'WE',
+  'TH',
+  'FR',
+  'SA',
+  'SU',
+] satisfies DayCode[];
+
+const namedDayMatchers = [
+  ['MO', /\b(?:monday|mondays|mon)\b/],
+  ['TU', /\b(?:tuesday|tuesdays|tue|tues)\b/],
+  ['WE', /\b(?:wednesday|wednesdays|wed)\b/],
+  ['TH', /\b(?:thursday|thursdays|thu|thurs)\b/],
+  ['FR', /\b(?:friday|fridays|fri)\b/],
+  ['SA', /\b(?:saturday|saturdays|sat)\b/],
+  ['SU', /\b(?:sunday|sundays|sun)\b/],
+] satisfies ReadonlyArray<readonly [DayCode, RegExp]>;
 
 function getCreateTaskTool() {
   return {
@@ -111,16 +137,93 @@ function getToolInputFromResponse(payload: unknown): ParsedTask {
   return parsedTaskSchema.parse(toolUse.input);
 }
 
+function toDisplayTitle(value: string): string {
+  const normalizedValue = value.trim();
+
+  if (normalizedValue.length === 0) {
+    return normalizedValue;
+  }
+
+  return `${normalizedValue[0]?.toUpperCase() ?? ''}${normalizedValue.slice(1)}`;
+}
+
+function inferTaskEmoji(rawInput: string): string {
+  const emojiHints = [
+    { emoji: '🎹', pattern: /\bpiano\b/ },
+    { emoji: '🍽️', pattern: /\b(?:kitchen|dish(?:es)?|dinner)\b/ },
+    { emoji: '🧺', pattern: /\blaundry\b/ },
+    { emoji: '🧹', pattern: /\b(?:vacuum|sweep|sweeping)\b/ },
+    { emoji: '📚', pattern: /\b(?:homework|study|schoolwork|reading)\b/ },
+    { emoji: '🧼', pattern: /\b(?:clean|cleanup|reset)\b/ },
+  ] as const;
+
+  const matchingHint = emojiHints.find(({ pattern }) => pattern.test(rawInput));
+
+  return matchingHint?.emoji ?? '📝';
+}
+
+function inferTaskTitle(rawInput: string): string {
+  const withoutScheduleWords = rawInput
+    .replace(/\b(?:every day|daily|weekdays|on|each)\b/g, ' ')
+    .replace(
+      /\b(?:monday|mondays|mon|tuesday|tuesdays|tue|tues|wednesday|wednesdays|wed|thursday|thursdays|thu|thurs|friday|fridays|fri|saturday|saturdays|sat|sunday|sundays|sun)\b/g,
+      ' ',
+    )
+    .replace(/[,&]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return toDisplayTitle(withoutScheduleWords || rawInput.trim());
+}
+
+function inferScheduleDays(rawInput: string): DayCode[] {
+  if (/\b(?:every day|daily)\b/.test(rawInput)) {
+    return [...allDayCodes];
+  }
+
+  if (/\bweekdays\b/.test(rawInput)) {
+    return [...weekdayDayCodes];
+  }
+
+  const detectedDays = namedDayMatchers
+    .filter(([, pattern]) => pattern.test(rawInput))
+    .map(([dayCode]) => dayCode);
+
+  if (detectedDays.length === 0) {
+    throw new NlTaskParserError(
+      'Stub task parser could not infer schedule days from the local e2e input.',
+    );
+  }
+
+  return detectedDays;
+}
+
+function parseStubNaturalLanguageTask(rawInput: string): ParsedTask {
+  const normalizedInput = rawInput.trim().toLowerCase();
+
+  return parsedTaskSchema.parse({
+    title: inferTaskTitle(normalizedInput),
+    emoji: inferTaskEmoji(normalizedInput),
+    schedule_rules: {
+      days: inferScheduleDays(normalizedInput),
+    },
+  });
+}
+
 export async function parseNaturalLanguageTask(
-  apiKey: string,
+  config: TaskParserConfig,
   rawInput: string,
 ): Promise<ParsedTask> {
+  if (config.mode === 'stub') {
+    return parseStubNaturalLanguageTask(rawInput);
+  }
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'anthropic-version': anthropicVersion,
       'content-type': 'application/json',
-      'x-api-key': apiKey,
+      'x-api-key': config.apiKey,
     },
     body: JSON.stringify({
       model: anthropicModel,

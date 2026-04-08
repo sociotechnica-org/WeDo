@@ -1,4 +1,21 @@
+import { execFileSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { expect, test, type Locator } from '@playwright/test';
+
+const thisFilePath = fileURLToPath(import.meta.url);
+const repoRoot = join(dirname(thisFilePath), '..', '..');
+
+function getNpmExecutable() {
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
+function reseedLocalDatabase() {
+  execFileSync(getNpmExecutable(), ['run', 'db:seed:local'], {
+    cwd: repoRoot,
+    stdio: 'pipe',
+  });
+}
 
 async function readComputedStyles(locator: Locator) {
   return locator.evaluate((element) => {
@@ -13,6 +30,10 @@ async function readComputedStyles(locator: Locator) {
     };
   });
 }
+
+test.beforeEach(() => {
+  reseedLocalDatabase();
+});
 
 test('renders the realtime household dashboard with seeded family data', async ({
   page,
@@ -112,87 +133,12 @@ test('creates a task from natural language in the focused single-list view', asy
 
   await page.goto('/');
   await page.getByRole('link', { name: "Open Jess's list" }).click();
-
   await page.route('**/api/families/*/tasks', async (route) => {
-    const requestBody = route.request().postDataJSON() as {
-      person_id: string;
-      raw_input: string;
-      viewed_date: string;
-    };
-
-    expect(requestBody.raw_input).toBe('practice piano every day');
-
-    await route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        task: {
-          id: 'task-new-piano',
-          family_id: '2b95f346-f41d-4c78-8ec6-bd37ec0117b4',
-          person_id: requestBody.person_id,
-          title: 'Practice piano',
-          emoji: '🎹',
-          schedule_rules: {
-            days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
-          },
-          created_at: '2026-04-08T12:00:00Z',
-        },
-        state: {
-          family_id: '2b95f346-f41d-4c78-8ec6-bd37ec0117b4',
-          day: {
-            date: requestBody.viewed_date,
-            is_sunday: false,
-          },
-          people: [
-            {
-              person: {
-                id: requestBody.person_id,
-                family_id: '2b95f346-f41d-4c78-8ec6-bd37ec0117b4',
-                name: 'Jess',
-                display_order: 0,
-                emoji: '🌿',
-              },
-              streak: {
-                person_id: requestBody.person_id,
-                current_count: 0,
-                best_count: 0,
-                last_qualifying_date: null,
-              },
-              skip_day: null,
-              tasks: [
-                {
-                  task: {
-                    id: '8b7c6fc3-1fe3-4e85-a76e-49f15fca5fd8',
-                    family_id: '2b95f346-f41d-4c78-8ec6-bd37ec0117b4',
-                    person_id: requestBody.person_id,
-                    title: 'Kitchen reset',
-                    emoji: '🍽️',
-                    schedule_rules: {
-                      days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA'],
-                    },
-                    created_at: '2026-04-08T00:00:00Z',
-                  },
-                  completion: null,
-                },
-                {
-                  task: {
-                    id: 'task-new-piano',
-                    family_id: '2b95f346-f41d-4c78-8ec6-bd37ec0117b4',
-                    person_id: requestBody.person_id,
-                    title: 'Practice piano',
-                    emoji: '🎹',
-                    schedule_rules: {
-                      days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
-                    },
-                    created_at: '2026-04-08T12:00:00Z',
-                  },
-                  completion: null,
-                },
-              ],
-            },
-          ],
-        },
-      }),
+    await route.continue({
+      headers: {
+        ...route.request().headers(),
+        'x-wedo-task-parser-mode': 'stub',
+      },
     });
   });
 
@@ -203,6 +149,13 @@ test('creates a task from natural language in the focused single-list view', asy
   await expect(
     page.getByText('Task added to the recurring schedule.'),
   ).toBeVisible();
+  await expect(page.getByText('Practice piano')).toBeVisible();
+  await expect(
+    page.getByText(/0 of 2 tasks marked for this day\./),
+  ).toBeVisible();
+
+  await page.reload();
+
   await expect(page.getByText('Practice piano')).toBeVisible();
   await expect(
     page.getByText(/0 of 2 tasks marked for this day\./),

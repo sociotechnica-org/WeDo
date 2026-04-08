@@ -1,6 +1,6 @@
 import type { Hono } from 'hono';
 import { ZodError } from 'zod';
-import { getAnthropicApiKey, type WorkerBindings } from '@/config/runtime';
+import { getTaskParserConfig, type WorkerBindings } from '@/config/runtime';
 import { NlTaskParserError, parseNaturalLanguageTask } from '@/services/nl-parser';
 import {
   createTaskMutationSchema,
@@ -23,8 +23,12 @@ export function registerTaskRoutes(app: Hono<AppEnv>) {
       const requestBody = nlTaskEntryRequestSchema.parse(
         (await context.req.json()) as unknown,
       );
+      const requestedTaskParserMode =
+        context.req.header('x-wedo-task-parser-mode') === 'stub'
+          ? 'stub'
+          : undefined;
       const parsedTask = await parseNaturalLanguageTask(
-        getAnthropicApiKey(context.env),
+        getTaskParserConfig(context.env, requestedTaskParserMode),
         requestBody.raw_input,
       );
       const mutation = createTaskMutationSchema.parse({
