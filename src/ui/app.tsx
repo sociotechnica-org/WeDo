@@ -1,10 +1,22 @@
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
-import { HomeRoute } from '@/ui/routes/home-route';
+import { BoardRoute } from '@/ui/routes/board-route';
+import { DashboardRoute } from '@/ui/routes/dashboard-route';
+import { SingleListRoute } from '@/ui/routes/single-list-route';
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <HomeRoute />,
+    element: <BoardRoute />,
+    children: [
+      {
+        index: true,
+        element: <DashboardRoute />,
+      },
+      {
+        path: 'people/:personId',
+        element: <SingleListRoute />,
+      },
+    ],
   },
 ]);
 

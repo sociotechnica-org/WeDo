@@ -1,51 +1,13 @@
 import type { CSSProperties } from 'react';
 import type { PersonDayState } from '@/types';
 import { CompletionRing } from '@/ui/components/completion-ring';
+import { getPersonPalette } from '@/ui/components/person-palette';
 import { TaskRow } from '@/ui/components/task-row';
 
 type PersonColumnProps = {
   personState: PersonDayState;
   paletteIndex: number;
 };
-
-const columnPalettes = [
-  {
-    ink: '#446055',
-    wash: 'rgba(128, 170, 150, 0.72)',
-    mist: 'rgba(128, 170, 150, 0.18)',
-    cloud: 'rgba(168, 204, 191, 0.24)',
-  },
-  {
-    ink: '#7b5f4e',
-    wash: 'rgba(192, 160, 132, 0.72)',
-    mist: 'rgba(192, 160, 132, 0.18)',
-    cloud: 'rgba(214, 186, 164, 0.22)',
-  },
-  {
-    ink: '#516681',
-    wash: 'rgba(131, 154, 191, 0.72)',
-    mist: 'rgba(131, 154, 191, 0.18)',
-    cloud: 'rgba(171, 189, 221, 0.24)',
-  },
-  {
-    ink: '#6d5b7b',
-    wash: 'rgba(166, 142, 186, 0.72)',
-    mist: 'rgba(166, 142, 186, 0.18)',
-    cloud: 'rgba(204, 184, 220, 0.23)',
-  },
-  {
-    ink: '#6b6551',
-    wash: 'rgba(165, 159, 121, 0.72)',
-    mist: 'rgba(165, 159, 121, 0.18)',
-    cloud: 'rgba(208, 204, 176, 0.24)',
-  },
-  {
-    ink: '#6b5867',
-    wash: 'rgba(188, 154, 182, 0.72)',
-    mist: 'rgba(188, 154, 182, 0.18)',
-    cloud: 'rgba(220, 194, 213, 0.24)',
-  },
-] as const;
 
 function getStreakLabel(count: number) {
   if (count === 0) {
@@ -60,8 +22,7 @@ function getStreakLabel(count: number) {
 }
 
 export function PersonColumn({ personState, paletteIndex }: PersonColumnProps) {
-  const palette =
-    columnPalettes[paletteIndex % columnPalettes.length] ?? columnPalettes[0];
+  const palette = getPersonPalette(paletteIndex);
   const completedCount = personState.tasks.filter(
     (task) => task.completion !== null,
   ).length;
@@ -92,6 +53,7 @@ export function PersonColumn({ personState, paletteIndex }: PersonColumnProps) {
           <CompletionRing
             completedCount={completedCount}
             innerTint={palette.mist}
+            size="compact"
             tint={palette.wash}
             totalCount={personState.tasks.length}
           />
@@ -100,7 +62,12 @@ export function PersonColumn({ personState, paletteIndex }: PersonColumnProps) {
 
       <ul className="relative mt-6 space-y-3">
         {personState.tasks.map((task) => (
-          <TaskRow key={task.task.id} task={task} tint={palette.wash} />
+          <TaskRow
+            key={task.task.id}
+            task={task}
+            tint={palette.wash}
+            variant="dashboard"
+          />
         ))}
         {personState.tasks.length === 0 ? (
           <li className="rounded-[1.35rem] border border-dashed border-[rgba(87,72,58,0.12)] px-3.5 py-4 text-[0.98rem] leading-6 text-[var(--color-ink-soft)]">

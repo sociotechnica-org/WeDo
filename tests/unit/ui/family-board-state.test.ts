@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { familyBoardStateSchema } from '@/types';
 import {
   createReadyFamilyBoardState,
+  findTaskCompletionStatus,
   getRealtimeCloseMessage,
   getRealtimeErrorMessage,
+  toggleTaskCompletionInBoard,
+  withOptimisticTaskToggle,
   withRealtimeIssue,
 } from '@/ui/hooks/family-board-state';
 
@@ -50,19 +53,28 @@ const board = familyBoardStateSchema.parse({
 });
 
 describe('family-board-state helpers', () => {
+  const toggleTask = () => true;
+
   it('creates a live ready state from the latest board snapshot', () => {
-    expect(createReadyFamilyBoardState(board, 'River House')).toEqual({
-      status: 'ready',
-      board,
-      householdName: 'River House',
-      realtime: {
-        status: 'live',
+    expect(createReadyFamilyBoardState(board, 'River House', toggleTask)).toEqual(
+      {
+        status: 'ready',
+        board,
+        householdName: 'River House',
+        realtime: {
+          status: 'live',
+        },
+        toggleTask,
       },
-    });
+    );
   });
 
   it('preserves the last good board while marking realtime as degraded', () => {
-    const readyState = createReadyFamilyBoardState(board, 'River House');
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      toggleTask,
+    );
 
     expect(
       withRealtimeIssue(
@@ -77,7 +89,43 @@ describe('family-board-state helpers', () => {
         status: 'degraded',
         message: 'The board is still visible, but live updates are paused.',
       },
+      toggleTask,
     });
+  });
+
+  it('applies an optimistic completion toggle to the current board snapshot', () => {
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      toggleTask,
+    );
+    const completedAt = '2026-04-08T12:00:00Z';
+    const optimisticState = withOptimisticTaskToggle(
+      readyState,
+      'task-kitchen',
+      completedAt,
+    );
+
+    expect(optimisticState?.board.people[0]?.tasks[0]?.completion).toEqual({
+      id: 'optimistic:2026-04-08:task-kitchen',
+      task_id: 'task-kitchen',
+      date: '2026-04-08',
+      completed_at: completedAt,
+    });
+    expect(findTaskCompletionStatus(optimisticState!.board, 'task-kitchen')).toBe(
+      true,
+    );
+  });
+
+  it('returns null when an optimistic toggle targets a missing task', () => {
+    expect(
+      toggleTaskCompletionInBoard(
+        board,
+        'task-missing',
+        '2026-04-08T12:00:00Z',
+      ),
+    ).toBeNull();
+    expect(findTaskCompletionStatus(board, 'task-missing')).toBeNull();
   });
 
   it('returns initialization-aware websocket failure copy', () => {

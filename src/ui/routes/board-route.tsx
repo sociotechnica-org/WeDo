@@ -1,0 +1,40 @@
+import { Outlet } from 'react-router-dom';
+import { useFamilyBoard } from '@/ui/hooks/use-family-board';
+
+export function BoardRoute() {
+  const boardState = useFamilyBoard();
+
+  if (boardState.status === 'loading') {
+    return (
+      <main className="paper-canvas grid min-h-screen place-items-center px-6 py-10">
+        <div className="paper-panel max-w-xl rounded-[2rem] px-8 py-10 text-center shadow-[0_24px_60px_rgba(82,65,48,0.10)]">
+          <p className="scribe-label text-sm uppercase tracking-[0.35em] text-[var(--color-ink-soft)]">
+            Opening the board
+          </p>
+          <h1 className="mt-4 text-5xl text-[var(--color-ink)]">WeDo</h1>
+          <p className="mt-4 text-lg text-[var(--color-ink-soft)]">
+            Pulling today&apos;s household page into view.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (boardState.status === 'error') {
+    return (
+      <main className="paper-canvas grid min-h-screen place-items-center px-6 py-10">
+        <div className="paper-panel max-w-xl rounded-[2rem] px-8 py-10 text-center shadow-[0_24px_60px_rgba(82,65,48,0.10)]">
+          <p className="scribe-label text-sm uppercase tracking-[0.35em] text-[var(--color-ink-soft)]">
+            Board unavailable
+          </p>
+          <h1 className="mt-4 text-5xl text-[var(--color-ink)]">WeDo</h1>
+          <p className="mt-4 text-lg text-[var(--color-ink-soft)]">
+            {boardState.message}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  return <Outlet context={boardState} />;
+}
