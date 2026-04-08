@@ -293,6 +293,19 @@ export function withRecoveredRealtimeIssue(
   };
 }
 
+export function withRealtimeCloseIssue(
+  currentState: FamilyBoardViewState,
+  confirmedState: ReadyFamilyBoardState | null,
+  message: string,
+  closeCode: number,
+): FamilyBoardViewState {
+  if (closeCode === 1008 || closeCode === 1011) {
+    return withRecoveredRealtimeIssue(currentState, confirmedState, message);
+  }
+
+  return withRealtimeIssue(currentState, message);
+}
+
 export function getRealtimeErrorMessage(hasInitialized: boolean) {
   return hasInitialized
     ? 'The board is still visible, but live updates may be unavailable.'

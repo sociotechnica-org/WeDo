@@ -24,7 +24,7 @@ import {
   withOptimisticTaskToggle,
   withOptimisticTaskDeletion,
   withOptimisticSkipDay,
-  withRecoveredRealtimeIssue,
+  withRealtimeCloseIssue,
   withRealtimeIssue,
 } from './family-board-state';
 
@@ -443,13 +443,12 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
 
           if (hasInitialized) {
             commitState(
-              event.code === 1008
-                ? withRecoveredRealtimeIssue(
-                    stateRef.current,
-                    confirmedStateRef.current,
-                    message,
-                  )
-                : withRealtimeIssue(stateRef.current, message),
+              withRealtimeCloseIssue(
+                stateRef.current,
+                confirmedStateRef.current,
+                message,
+                event.code,
+              ),
             );
             return;
           }

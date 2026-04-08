@@ -14,6 +14,7 @@ import {
   withOptimisticSkipDay,
   withOptimisticTaskDeletion,
   withOptimisticTaskToggle,
+  withRealtimeCloseIssue,
   withRecoveredRealtimeIssue,
   withRealtimeIssue,
 } from '@/ui/hooks/family-board-state';
@@ -123,6 +124,56 @@ describe('family-board-state helpers', () => {
       realtime: {
         status: 'degraded',
         message: 'Task task-kitchen does not belong to family family-maple.',
+      },
+    });
+  });
+
+  it('recovers the last confirmed board snapshot on an unexpected server close', () => {
+    const confirmedState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+    const optimisticState = withOptimisticTaskDeletion(
+      confirmedState,
+      'task-kitchen',
+    );
+
+    expect(
+      withRealtimeCloseIssue(
+        optimisticState!,
+        confirmedState,
+        'Unexpected realtime error.',
+        1011,
+      ),
+    ).toEqual({
+      ...confirmedState,
+      realtime: {
+        status: 'degraded',
+        message: 'Unexpected realtime error.',
+      },
+    });
+  });
+
+  it('keeps the current board snapshot on non-recovering socket closes', () => {
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+
+    expect(
+      withRealtimeCloseIssue(
+        readyState,
+        createReadyFamilyBoardState(board, 'River House', todayDate),
+        'Socket closed by server.',
+        1000,
+      ),
+    ).toEqual({
+      ...readyState,
+      realtime: {
+        status: 'degraded',
+        message: 'Socket closed by server.',
       },
     });
   });
