@@ -249,6 +249,11 @@ function buildInsertStatement(
 
 export function buildLocalSeedSql(): string {
   return [
+    'DELETE FROM `task_completions`;',
+    'DELETE FROM `tasks`;',
+    'DELETE FROM `streaks`;',
+    'DELETE FROM `skip_days`;',
+    'DELETE FROM `persons`;',
     buildInsertStatement('persons', martinFamilyPersons),
     buildInsertStatement('tasks', martinFamilyTasks),
     buildInsertStatement('streaks', martinFamilyStreaks),

@@ -146,6 +146,44 @@ describeNodeSqlite('db seed SQL path', () => {
     expect(streakCount.count).toBe(martinFamilyStreaks.length);
   });
 
+  it('restores the canonical household after local settings mutations', () => {
+    const Database = DatabaseSync;
+
+    if (!Database) {
+      throw new Error('node:sqlite is unavailable in this runtime.');
+    }
+
+    const db = new Database(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    applyMigration(db);
+    db.exec(buildLocalSeedSql());
+
+    db.exec(`
+      DELETE FROM persons WHERE name = 'Wells';
+      UPDATE persons
+      SET name = 'Ada', display_order = 5
+      WHERE name = 'Cora';
+    `);
+
+    db.exec(buildLocalSeedSql());
+
+    const people = db
+      .prepare('SELECT name FROM persons ORDER BY display_order')
+      .all() as Array<{ name: string }>;
+    const taskCount = db
+      .prepare('SELECT COUNT(*) AS count FROM tasks')
+      .get() as { count: number };
+    const streakCount = db
+      .prepare('SELECT COUNT(*) AS count FROM streaks')
+      .get() as { count: number };
+
+    expect(people.map((person) => person.name)).toEqual(
+      martinFamilyPersons.map((person) => person.name),
+    );
+    expect(taskCount.count).toBe(martinFamilyTasks.length);
+    expect(streakCount.count).toBe(martinFamilyStreaks.length);
+  });
+
   it('enforces that seeded tasks stay in the same family as their assignee', () => {
     const Database = DatabaseSync;
 

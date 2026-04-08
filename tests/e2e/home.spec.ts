@@ -15,7 +15,7 @@ test('renders the realtime household dashboard with seeded family data', async (
       name: 'WeDo',
     }),
   ).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   await expect(page.getByTestId('person-column')).toHaveCount(6);
   await expect(page.getByRole('heading', { name: 'Jess' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Cora' })).toBeVisible();
@@ -176,6 +176,50 @@ test('creates a task from natural language in the focused single-list view', asy
   await expect(
     page.getByText('0 of 2 tasks marked for this day.'),
   ).toBeVisible();
+});
+
+test('saves person settings, reorders columns, adds a person, and removes a person', async ({
+  page,
+}) => {
+  await page.setViewportSize({
+    width: 1180,
+    height: 820,
+  });
+
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Settings' }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Person management' }),
+  ).toBeVisible();
+  await expect(page.getByTestId('settings-person-row')).toHaveCount(6);
+
+  const elizabethRow = page
+    .getByTestId('settings-person-row')
+    .filter({ has: page.locator('input[value="Elizabeth"]') });
+  await elizabethRow.getByRole('button', { name: 'Move Elizabeth up' }).click();
+
+  await page.getByPlaceholder('🌼').fill('🪁');
+  await page.getByPlaceholder('New Person').fill('Ada');
+  await page.getByRole('button', { name: 'Add Person' }).click();
+
+  const wellsRow = page
+    .getByTestId('settings-person-row')
+    .filter({ has: page.locator('input[value="Wells"]') });
+  await wellsRow.getByRole('button', { name: 'Remove' }).click();
+  await wellsRow.getByRole('button', { name: 'Confirm remove' }).click();
+
+  await page.getByRole('button', { name: 'Save settings' }).click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId('person-column')).toHaveCount(6);
+  await expect(
+    page.getByTestId('person-column').first().getByRole('heading', {
+      name: 'Elizabeth',
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ada' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Wells' })).toHaveCount(0);
 });
 
 test('toggles the current day into a skipped, dimmed state and can clear it again', async ({

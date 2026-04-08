@@ -4,9 +4,18 @@ const taskRouteMocks = vi.hoisted(() => ({
   parseNaturalLanguageTask: vi.fn(),
 }));
 
+const personRouteMocks = vi.hoisted(() => ({
+  saveFamilyPersons: vi.fn(),
+}));
+
 vi.mock('@/services/nl-parser', () => ({
   NlTaskParserError: class extends Error {},
   parseNaturalLanguageTask: taskRouteMocks.parseNaturalLanguageTask,
+}));
+
+vi.mock('@/services/person-settings', () => ({
+  PersonSettingsError: class extends Error {},
+  saveFamilyPersons: personRouteMocks.saveFamilyPersons,
 }));
 
 import { createApp } from '@/workers/app';
@@ -14,6 +23,7 @@ import { createApp } from '@/workers/app';
 describe('workers app realtime route', () => {
   beforeEach(() => {
     taskRouteMocks.parseNaturalLanguageTask.mockReset();
+    personRouteMocks.saveFamilyPersons.mockReset();
   });
 
   it('returns a controlled 503 when dashboard bootstrap cannot find a family', async () => {
@@ -234,6 +244,149 @@ describe('workers app realtime route', () => {
     expect(response.status).toBe(503);
     await expect(response.text()).resolves.toBe(
       'Task creation is temporarily unavailable.',
+    );
+  });
+
+  it('persists person settings through the REST route and returns the refreshed board state', async () => {
+    personRouteMocks.saveFamilyPersons.mockResolvedValue({
+      family_id: 'family-123',
+      day: {
+        date: '2026-04-08',
+        is_sunday: false,
+      },
+      people: [
+        {
+          person: {
+            id: 'person-jess',
+            family_id: 'family-123',
+            name: 'Jess',
+            display_order: 0,
+            emoji: '🌿',
+          },
+          streak: {
+            person_id: 'person-jess',
+            current_count: 0,
+            best_count: 0,
+            last_qualifying_date: null,
+          },
+          skip_day: null,
+          tasks: [],
+        },
+      ],
+    });
+
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/persons', {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          viewed_date: '2026-04-08',
+          people: [
+            {
+              id: 'person-jess',
+              name: 'Jess',
+              emoji: '🌿',
+            },
+          ],
+        }),
+      }),
+      {
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn(),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(personRouteMocks.saveFamilyPersons).toHaveBeenCalledWith(
+      {},
+      {
+        familyId: 'family-123',
+        viewedDate: '2026-04-08',
+        people: [
+          {
+            id: 'person-jess',
+            name: 'Jess',
+            emoji: '🌿',
+          },
+        ],
+      },
+    );
+    await expect(response.json()).resolves.toEqual({
+      state: {
+        family_id: 'family-123',
+        day: {
+          date: '2026-04-08',
+          is_sunday: false,
+        },
+        people: [
+          {
+            person: {
+              id: 'person-jess',
+              family_id: 'family-123',
+              name: 'Jess',
+              display_order: 0,
+              emoji: '🌿',
+            },
+            streak: {
+              person_id: 'person-jess',
+              current_count: 0,
+              best_count: 0,
+              last_qualifying_date: null,
+            },
+            skip_day: null,
+            tasks: [],
+          },
+        ],
+      },
+    });
+  });
+
+  it('returns a controlled 503 when person settings response shaping fails server-side', async () => {
+    personRouteMocks.saveFamilyPersons.mockResolvedValue({
+      family_id: 'family-123',
+      day: {
+        date: 'not-a-date',
+        is_sunday: false,
+      },
+      people: [],
+    });
+
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/persons', {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          viewed_date: '2026-04-08',
+          people: [
+            {
+              id: 'person-jess',
+              name: 'Jess',
+              emoji: '🌿',
+            },
+          ],
+        }),
+      }),
+      {
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn(),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.text()).resolves.toBe(
+      'Person settings are temporarily unavailable.',
     );
   });
 });

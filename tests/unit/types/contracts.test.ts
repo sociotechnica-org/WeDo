@@ -12,6 +12,9 @@ import {
   nlTaskEntryRequestSchema,
   parsedTaskSchema,
   personSchema,
+  personSettingsEntrySchema,
+  savePersonsRequestSchema,
+  savePersonsResponseSchema,
   scheduleRulesSchema,
   serverWebSocketMessageSchema,
   skipDaySchema,
@@ -216,6 +219,56 @@ describe('shared type contracts', () => {
       task: exampleTask,
       state: exampleFamilyBoardState,
     });
+
+    expect(
+      personSettingsEntrySchema.parse({
+        id: 'person-jess',
+        name: ' Jess ',
+        emoji: ' 🌿 ',
+      }),
+    ).toEqual({
+      id: 'person-jess',
+      name: 'Jess',
+      emoji: '🌿',
+    });
+
+    expect(
+      savePersonsRequestSchema.parse({
+        viewed_date: '2026-04-08',
+        people: [
+          {
+            id: 'person-jess',
+            name: 'Jess',
+            emoji: '🌿',
+          },
+          {
+            name: 'Cora',
+            emoji: '🫧',
+          },
+        ],
+      }),
+    ).toEqual({
+      viewed_date: '2026-04-08',
+      people: [
+        {
+          id: 'person-jess',
+          name: 'Jess',
+          emoji: '🌿',
+        },
+        {
+          name: 'Cora',
+          emoji: '🫧',
+        },
+      ],
+    });
+
+    expect(
+      savePersonsResponseSchema.parse({
+        state: exampleFamilyBoardState,
+      }),
+    ).toEqual({
+      state: exampleFamilyBoardState,
+    });
   });
 
   it('rejects invalid schedule rules', () => {
@@ -234,6 +287,23 @@ describe('shared type contracts', () => {
     expect(
       scheduleRulesSchema.safeParse({
         days: ['MO', 'MO'],
+      }).success,
+    ).toBe(false);
+
+    expect(
+      savePersonsRequestSchema.safeParse({
+        viewed_date: '2026-04-08',
+        people: [
+          {
+            id: 'person-jess',
+            name: 'Jess',
+            emoji: '🌿',
+          },
+          {
+            name: 'jess',
+            emoji: '🫧',
+          },
+        ],
       }).success,
     ).toBe(false);
   });

@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   boardResponseSchema,
   createTaskResponseSchema,
+  savePersonsResponseSchema,
   serverWebSocketMessageSchema,
   type BoardResponse,
   type InitRequest,
   type IsoDate,
+  type PersonSettingsEntry,
   type SkipDayToggledMessage,
   type TaskDeletedMessage,
   type ServerWebSocketMessage,
@@ -49,6 +51,13 @@ function buildBoardUrl(requestedDay?: IsoDate): string {
 function buildCreateTaskUrl(familyId: string): string {
   return new URL(
     `/api/families/${familyId}/tasks`,
+    window.location.origin,
+  ).toString();
+}
+
+function buildSavePersonsUrl(familyId: string): string {
+  return new URL(
+    `/api/families/${familyId}/persons`,
     window.location.origin,
   ).toString();
 }
@@ -317,6 +326,75 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     [commitState],
   );
 
+  const savePersons = useCallback(
+    async (people: PersonSettingsEntry[]): Promise<void> => {
+      const currentState = stateRef.current;
+
+      if (currentState.status !== 'ready') {
+        throw new Error('The board is not ready for person settings.');
+      }
+
+      const requestFamilyId = currentState.board.family_id;
+      const requestViewedDate = currentState.board.day.date;
+
+      try {
+        const response = await fetch(buildSavePersonsUrl(requestFamilyId), {
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            viewed_date: requestViewedDate,
+            people,
+          }),
+        });
+
+        if (!response.ok) {
+          const message =
+            (await response.text()) || 'Saving person settings failed.';
+
+          if (
+            !isReadyBoardViewFor(
+              stateRef.current,
+              requestFamilyId,
+              requestViewedDate,
+            )
+          ) {
+            return;
+          }
+
+          throw new Error(message);
+        }
+
+        const payload = savePersonsResponseSchema.parse(
+          (await response.json()) as unknown,
+        );
+        const latestState = stateRef.current;
+
+        if (
+          !isReadyBoardViewFor(latestState, requestFamilyId, requestViewedDate)
+        ) {
+          return;
+        }
+
+        commitState(withBoardSnapshot(latestState, payload.state));
+      } catch (error) {
+        if (
+          !isReadyBoardViewFor(
+            stateRef.current,
+            requestFamilyId,
+            requestViewedDate,
+          )
+        ) {
+          return;
+        }
+
+        throw error;
+      }
+    },
+    [commitState],
+  );
+
   useEffect(() => {
     // Changing the requested day should rebuild the board snapshot against a
     // fresh bootstrap + socket initialization for that exact date.
@@ -493,6 +571,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     ...state,
     createTask,
     deleteTask,
+    savePersons,
     toggleSkipDay,
     toggleTask,
   };
@@ -502,10 +581,12 @@ type ToggleTask = (taskId: string) => boolean;
 type DeleteTask = (taskId: string) => boolean;
 type ToggleSkipDay = () => boolean;
 type CreateTask = (personId: string, rawInput: string) => Promise<void>;
+type SavePersons = (people: PersonSettingsEntry[]) => Promise<void>;
 
 export type ReadyFamilyBoardViewState = ReadyFamilyBoardState & {
   createTask: CreateTask;
   deleteTask: DeleteTask;
+  savePersons: SavePersons;
   toggleSkipDay: ToggleSkipDay;
   toggleTask: ToggleTask;
 };
