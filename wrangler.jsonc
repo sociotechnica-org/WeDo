@@ -4,6 +4,7 @@
   "compatibility_date": "2026-04-08",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./worker.ts",
+  "workers_dev": true,
   "durable_objects": {
     "bindings": [
       {
@@ -40,6 +41,7 @@
   "vars": {
     "HOUSEHOLD_NAME": "Maple House",
     "TASK_PARSER_MODE": "live",
+    "TIMEZONE": "America/New_York",
   },
   "env": {
     "e2e": {
@@ -63,6 +65,7 @@
       "vars": {
         "HOUSEHOLD_NAME": "Maple House",
         "TASK_PARSER_MODE": "stub",
+        "TIMEZONE": "America/New_York",
       },
     },
   },
