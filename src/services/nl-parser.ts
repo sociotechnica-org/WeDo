@@ -57,6 +57,9 @@ const namedDayMatchers = [
   ['SU', /\b(?:sunday|sundays|sun)\b/],
 ] satisfies ReadonlyArray<readonly [DayCode, RegExp]>;
 
+const scheduledDayWordsPattern =
+  /\b(?:monday|mondays|mon|tuesday|tuesdays|tue|tues|wednesday|wednesdays|wed|thursday|thursdays|thu|thurs|friday|fridays|fri|saturday|saturdays|sat|sunday|sundays|sun)\b/g;
+
 function getCreateTaskTool() {
   return {
     name: toolName,
@@ -164,11 +167,12 @@ function inferTaskEmoji(rawInput: string): string {
 
 function inferTaskTitle(rawInput: string): string {
   const withoutScheduleWords = rawInput
-    .replace(/\b(?:every day|daily|weekdays|on|each)\b/g, ' ')
     .replace(
-      /\b(?:monday|mondays|mon|tuesday|tuesdays|tue|tues|wednesday|wednesdays|wed|thursday|thursdays|thu|thurs|friday|fridays|fri|saturday|saturdays|sat|sunday|sundays|sun)\b/g,
+      /\bon(?=\s+(?:every day|daily|weekdays|each|monday|mondays|mon|tuesday|tuesdays|tue|tues|wednesday|wednesdays|wed|thursday|thursdays|thu|thurs|friday|fridays|fri|saturday|saturdays|sat|sunday|sundays|sun)\b)/g,
       ' ',
     )
+    .replace(/\b(?:every day|daily|weekdays|each)\b/g, ' ')
+    .replace(scheduledDayWordsPattern, ' ')
     .replace(/[,&]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

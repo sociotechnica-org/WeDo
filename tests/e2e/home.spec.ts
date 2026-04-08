@@ -133,14 +133,6 @@ test('creates a task from natural language in the focused single-list view', asy
 
   await page.goto('/');
   await page.getByRole('link', { name: "Open Jess's list" }).click();
-  await page.route('**/api/families/*/tasks', async (route) => {
-    await route.continue({
-      headers: {
-        ...route.request().headers(),
-        'x-wedo-task-parser-mode': 'stub',
-      },
-    });
-  });
 
   await page.getByRole('button', { name: 'Add task' }).click();
   await page.getByLabel('Add task').fill('practice piano every day');

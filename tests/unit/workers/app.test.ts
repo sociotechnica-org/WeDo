@@ -250,7 +250,7 @@ describe('workers app realtime route', () => {
     );
   });
 
-  it('allows request-scoped stub parsing for deterministic local e2e coverage', async () => {
+  it('uses the configured stub parser mode for deterministic local e2e coverage', async () => {
     taskRouteMocks.parseNaturalLanguageTask.mockResolvedValue({
       title: 'Practice piano',
       emoji: '🎹',
@@ -265,7 +265,6 @@ describe('workers app realtime route', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-wedo-task-parser-mode': 'stub',
         },
         body: JSON.stringify({
           person_id: 'person-456',
@@ -274,6 +273,7 @@ describe('workers app realtime route', () => {
         }),
       }),
       {
+        TASK_PARSER_MODE: 'stub',
         DB: {} as never,
         FAMILY_BOARD: {
           getByName: vi.fn().mockReturnValue({
@@ -360,6 +360,37 @@ describe('workers app realtime route', () => {
         mode: 'stub',
       },
       'practice piano every day',
+    );
+  });
+
+  it('does not allow a request header to bypass live parsing mode', async () => {
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/tasks', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-wedo-task-parser-mode': 'stub',
+        },
+        body: JSON.stringify({
+          person_id: 'person-456',
+          raw_input: 'practice piano every day',
+          viewed_date: '2026-04-08',
+        }),
+      }),
+      {
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn(),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(503);
+    expect(taskRouteMocks.parseNaturalLanguageTask).not.toHaveBeenCalled();
+    await expect(response.text()).resolves.toBe(
+      'Task creation is temporarily unavailable.',
     );
   });
 

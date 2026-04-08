@@ -23,12 +23,8 @@ export function registerTaskRoutes(app: Hono<AppEnv>) {
       const requestBody = nlTaskEntryRequestSchema.parse(
         (await context.req.json()) as unknown,
       );
-      const requestedTaskParserMode =
-        context.req.header('x-wedo-task-parser-mode') === 'stub'
-          ? 'stub'
-          : undefined;
       const parsedTask = await parseNaturalLanguageTask(
-        getTaskParserConfig(context.env, requestedTaskParserMode),
+        getTaskParserConfig(context.env),
         requestBody.raw_input,
       );
       const mutation = createTaskMutationSchema.parse({

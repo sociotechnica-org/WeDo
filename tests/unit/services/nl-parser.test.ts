@@ -159,4 +159,21 @@ describe('nl-parser service', () => {
       },
     });
   });
+
+  it('keeps non-schedule words intact when deriving stub titles', async () => {
+    await expect(
+      parseNaturalLanguageTask(
+        {
+          mode: 'stub',
+        },
+        'turn on the lights every day',
+      ),
+    ).resolves.toEqual({
+      title: 'Turn on the lights',
+      emoji: '📝',
+      schedule_rules: {
+        days: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
+      },
+    });
+  });
 });
