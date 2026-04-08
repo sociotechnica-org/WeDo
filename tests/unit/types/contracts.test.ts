@@ -156,12 +156,6 @@ describe('shared type contracts', () => {
       task_id: 'task-piano',
     } as const;
 
-    const skipDayToggled = {
-      type: 'skip_day_toggled',
-      date: '2026-04-07',
-      skip_day: exampleSkipDay,
-    } as const;
-
     const stateUpdate = {
       type: 'state_update',
       state: exampleFamilyBoardState,
@@ -171,11 +165,14 @@ describe('shared type contracts', () => {
     expect(webSocketMessageSchema.parse(taskToggled)).toEqual(taskToggled);
     expect(taskCreatedMessageSchema.parse(taskCreated)).toEqual(taskCreated);
     expect(taskDeletedMessageSchema.parse(taskDeleted)).toEqual(taskDeleted);
-    expect(serverWebSocketMessageSchema.parse(skipDayToggled)).toEqual(
-      skipDayToggled,
-    );
     expect(initResponseSchema.parse(initResponse)).toEqual(initResponse);
+    expect(serverWebSocketMessageSchema.parse(initResponse)).toEqual(
+      initResponse,
+    );
     expect(stateUpdateMessageSchema.parse(stateUpdate)).toEqual(stateUpdate);
+    expect(serverWebSocketMessageSchema.parse(stateUpdate)).toEqual(
+      stateUpdate,
+    );
   });
 
   it('rejects unknown or directionally invalid websocket messages', () => {
@@ -190,6 +187,14 @@ describe('shared type contracts', () => {
       clientWebSocketMessageSchema.safeParse({
         type: 'init_response',
         state: exampleFamilyBoardState,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      serverWebSocketMessageSchema.safeParse({
+        type: 'skip_day_toggled',
+        date: '2026-04-07',
+        skip_day: exampleSkipDay,
       }).success,
     ).toBe(false);
 

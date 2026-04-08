@@ -66,10 +66,6 @@ export const clientWebSocketMessageSchema = z.discriminatedUnion('type', [
 
 export const serverWebSocketMessageSchema = z.discriminatedUnion('type', [
   initResponseSchema,
-  taskToggledMessageSchema,
-  taskCreatedMessageSchema,
-  taskDeletedMessageSchema,
-  skipDayToggledMessageSchema,
   stateUpdateMessageSchema,
 ]);
 
