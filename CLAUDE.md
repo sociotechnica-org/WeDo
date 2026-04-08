@@ -29,6 +29,16 @@ npm run test:struct  # structural layer boundary tests
 6. **No auth in v1.** Trusted household. Don't build login flows.
 7. **Watercolor, not widgets.** The aesthetic is letterpress/handwritten/watercolor. Never use default UI toolkit components for visible elements. See `Standard - Visual Language` in the library.
 
+## Planning Rule
+
+Every implementation PR should have a checked-in technical plan before substantial coding begins.
+
+- Store plans at `docs/plans/<issue-number-or-short-slug>/plan.md`.
+- Use the GitHub issue number when one exists. Otherwise use a short descriptive slug.
+- Read and follow `skills/technical-planning/SKILL.md` when creating or updating a plan.
+- Keep the plan aligned with the actual PR slice. If scope changes materially during implementation, update the plan before continuing.
+- Trivial typo-only or clearly non-implementation docs edits can skip a plan, but feature work, refactors, schema changes, service changes, realtime changes, and visible UI work should not.
+
 ## Product Context
 
 The Alexandria library at `docs/alexandria/library/` is the product knowledge graph.
