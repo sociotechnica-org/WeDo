@@ -7,28 +7,24 @@ type RealtimeState =
       message: string;
     };
 
-type ToggleTask = (taskId: string) => boolean;
-
-export type ReadyFamilyBoardViewState = {
+export type ReadyFamilyBoardState = {
   status: 'ready';
   board: FamilyBoardState;
   householdName: string;
   todayDate: IsoDate;
   realtime: RealtimeState;
-  toggleTask: ToggleTask;
 };
 
 export type FamilyBoardViewState =
   | { status: 'loading' }
-  | ReadyFamilyBoardViewState
+  | ReadyFamilyBoardState
   | { status: 'error'; message: string };
 
 export function createReadyFamilyBoardState(
   board: FamilyBoardState,
   householdName: string,
   todayDate: IsoDate,
-  toggleTask: ToggleTask,
-): ReadyFamilyBoardViewState {
+): ReadyFamilyBoardState {
   return {
     status: 'ready',
     board,
@@ -37,7 +33,28 @@ export function createReadyFamilyBoardState(
     realtime: {
       status: 'live',
     },
-    toggleTask,
+  };
+}
+
+export function isReadyBoardViewFor(
+  currentState: FamilyBoardViewState,
+  familyId: string,
+  date: IsoDate,
+): currentState is ReadyFamilyBoardState {
+  return (
+    currentState.status === 'ready' &&
+    currentState.board.family_id === familyId &&
+    currentState.board.day.date === date
+  );
+}
+
+export function withBoardSnapshot(
+  currentState: ReadyFamilyBoardState,
+  board: FamilyBoardState,
+): ReadyFamilyBoardState {
+  return {
+    ...currentState,
+    board,
   };
 }
 
@@ -117,10 +134,10 @@ export function toggleTaskCompletionInBoard(
 }
 
 export function withOptimisticTaskToggle(
-  currentState: ReadyFamilyBoardViewState,
+  currentState: ReadyFamilyBoardState,
   taskId: string,
   completedAt: string,
-): ReadyFamilyBoardViewState | null {
+): ReadyFamilyBoardState | null {
   const board = toggleTaskCompletionInBoard(
     currentState.board,
     taskId,

@@ -3,3 +3,4 @@ export * from './entities';
 export * from './health';
 export * from './realtime';
 export * from './shared';
+export * from './task-entry';

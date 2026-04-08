@@ -1,6 +1,8 @@
 import {
+  createTask,
   createTaskCompletion,
   getFamilyBoardSourceData,
+  getFamilyPerson,
   getFamilyTask,
   removeTaskCompletion,
   type FamilyBoardSourceData,
@@ -19,6 +21,7 @@ import {
   type IsoDate,
   type IsoTimestamp,
   type PersonDayState,
+  type ScheduleRules,
   type Streak,
   type Task,
 } from '@/types';
@@ -34,6 +37,15 @@ type ToggleTaskCompletionInput = {
   date: IsoDate;
   completed: boolean;
   completedAt?: IsoTimestamp;
+};
+
+type CreateTaskInput = {
+  familyId: string;
+  personId: string;
+  title: string;
+  emoji: string;
+  scheduleRules: ScheduleRules;
+  createdAt?: IsoTimestamp;
 };
 
 export class FamilyBoardStateError extends Error {}
@@ -131,6 +143,36 @@ function getCompletedAtTimestamp(value?: IsoTimestamp): IsoTimestamp {
   }
 
   return isoTimestampSchema.parse(new Date().toISOString());
+}
+
+function getCreatedAtTimestamp(value?: IsoTimestamp): IsoTimestamp {
+  if (value) {
+    return value;
+  }
+
+  return isoTimestampSchema.parse(new Date().toISOString());
+}
+
+export async function createRecurringTask(
+  client: DatabaseClient,
+  input: CreateTaskInput,
+): Promise<Task> {
+  const person = await getFamilyPerson(client, input.familyId, input.personId);
+
+  if (!person) {
+    throw new FamilyBoardStateError(
+      `Person ${input.personId} does not belong to family ${input.familyId}.`,
+    );
+  }
+
+  return await createTask(client, {
+    familyId: input.familyId,
+    personId: input.personId,
+    title: input.title,
+    emoji: input.emoji,
+    scheduleRules: input.scheduleRules,
+    createdAt: getCreatedAtTimestamp(input.createdAt),
+  });
 }
 
 export async function toggleTaskCompletion(
