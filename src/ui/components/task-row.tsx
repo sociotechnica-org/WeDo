@@ -19,6 +19,10 @@ export function TaskRow({
   const isInteractive = variant === 'single-list' && onPress !== undefined;
   const checkboxSize = variant === 'single-list' ? 'size-7' : 'size-5';
   const checkboxInnerSize = variant === 'single-list' ? 'size-4' : 'size-2.5';
+  const checkboxRadius =
+    variant === 'single-list' ? 'rounded-[0.55rem]' : 'rounded-[0.45rem]';
+  const checkboxInnerRadius =
+    variant === 'single-list' ? 'rounded-[0.3rem]' : 'rounded-[0.2rem]';
   const emojiSize = variant === 'single-list' ? 'text-2xl' : 'text-lg';
   const rowPadding =
     variant === 'single-list' ? 'px-5 py-4 md:px-6 md:py-5' : 'px-3.5 py-3.5';
@@ -31,10 +35,10 @@ export function TaskRow({
     <div className={`flex items-start gap-3 ${variant === 'single-list' ? 'md:gap-4' : ''}`}>
       <div
         aria-hidden="true"
-        className={`mt-1 grid shrink-0 place-items-center rounded-[0.55rem] border border-[rgba(87,72,58,0.28)] bg-[rgba(255,252,247,0.94)] ${checkboxSize}`}
+        className={`mt-1 grid shrink-0 place-items-center border border-[rgba(87,72,58,0.28)] bg-[rgba(255,252,247,0.94)] ${checkboxRadius} ${checkboxSize}`}
       >
         <div
-          className={`${checkboxInnerSize} rounded-[0.3rem] transition-colors`}
+          className={`${checkboxInnerRadius} ${checkboxInnerSize} transition-colors`}
           style={{
             background: isCompleted ? tint : 'transparent',
             boxShadow: isCompleted

@@ -46,6 +46,8 @@ export function useFamilyBoard() {
   const socketRef = useRef<WebSocket | null>(null);
   const stateRef = useRef<FamilyBoardViewState>(state);
 
+  // Keep the ref and React state in sync so async socket callbacks always
+  // reconcile against the latest board snapshot.
   const commitState = useCallback((nextState: FamilyBoardViewState) => {
     stateRef.current = nextState;
     setState(nextState);
@@ -112,6 +114,8 @@ export function useFamilyBoard() {
   }, [commitState]);
 
   useEffect(() => {
+    // This effect should mount the family socket once. If `commitState` or
+    // `toggleTask` become unstable, the connection would churn on re-render.
     const controller = new AbortController();
     let isDisposed = false;
     let hasInitialized = false;
