@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  foreignKey,
   index,
   integer,
   sqliteTable,
@@ -23,6 +24,7 @@ export const personsTable = sqliteTable(
       table.family_id,
       table.display_order,
     ),
+    uniqueIndex('persons_family_id_id_unique').on(table.family_id, table.id),
     uniqueIndex('persons_family_name_unique').on(table.family_id, table.name),
     check(
       'persons_display_order_nonnegative',
@@ -36,9 +38,7 @@ export const tasksTable = sqliteTable(
   {
     id: text('id').primaryKey(),
     family_id: text('family_id').notNull(),
-    person_id: text('person_id')
-      .notNull()
-      .references(() => personsTable.id, { onDelete: 'cascade' }),
+    person_id: text('person_id').notNull(),
     title: text('title').notNull(),
     emoji: text('emoji').notNull(),
     schedule_rules: text('schedule_rules', { mode: 'json' })
@@ -48,6 +48,11 @@ export const tasksTable = sqliteTable(
   },
   (table) => [
     index('tasks_family_person_idx').on(table.family_id, table.person_id),
+    foreignKey({
+      columns: [table.family_id, table.person_id],
+      foreignColumns: [personsTable.family_id, personsTable.id],
+      name: 'tasks_family_person_fk',
+    }).onDelete('cascade'),
     check(
       'tasks_schedule_rules_json_valid',
       sql`json_valid(${table.schedule_rules})`,
@@ -66,7 +71,10 @@ export const taskCompletionsTable = sqliteTable(
     completed_at: text('completed_at').notNull(),
   },
   (table) => [
-    uniqueIndex('task_completions_task_date_unique').on(table.task_id, table.date),
+    uniqueIndex('task_completions_task_date_unique').on(
+      table.task_id,
+      table.date,
+    ),
     index('task_completions_date_idx').on(table.date),
   ],
 );
@@ -96,7 +104,10 @@ export const streaksTable = sqliteTable(
     last_qualifying_date: text('last_qualifying_date'),
   },
   (table) => [
-    check('streaks_current_count_nonnegative', sql`${table.current_count} >= 0`),
+    check(
+      'streaks_current_count_nonnegative',
+      sql`${table.current_count} >= 0`,
+    ),
     check('streaks_best_count_nonnegative', sql`${table.best_count} >= 0`),
   ],
 );

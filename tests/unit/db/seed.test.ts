@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   personSchema,
@@ -12,15 +16,36 @@ import {
   martinFamilyPersons,
   martinFamilyStreaks,
   martinFamilyTasks,
+  buildLocalSeedSql,
   martinSeedData,
 } from '@/db/seed';
+
+const projectRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../..',
+);
+const initialMigrationSql = readFileSync(
+  resolve(projectRoot, 'src/db/migrations/0000_stormy_moira_mactaggert.sql'),
+  'utf8',
+);
+
+function applyMigration(db: DatabaseSync): void {
+  for (const statement of initialMigrationSql
+    .split('--> statement-breakpoint')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)) {
+    db.exec(statement);
+  }
+}
 
 describe('db seed data', () => {
   it('seeds the Martin household persons in stable display order', () => {
     expect(martinSeedData.family_id).toBe(martinFamilyId);
     expect(martinFamilyPersons).toHaveLength(6);
 
-    const displayOrder = martinFamilyPersons.map((person) => person.display_order);
+    const displayOrder = martinFamilyPersons.map(
+      (person) => person.display_order,
+    );
 
     expect(displayOrder).toEqual([0, 1, 2, 3, 4, 5]);
     expect(new Set(displayOrder).size).toBe(martinFamilyPersons.length);
@@ -43,7 +68,9 @@ describe('db seed data', () => {
     expect(martinFamilyTasks.length).toBeLessThanOrEqual(12);
 
     const personIds = new Set(martinFamilyPersons.map((person) => person.id));
-    const assigneeCoverage = new Set(martinFamilyTasks.map((task) => task.person_id));
+    const assigneeCoverage = new Set(
+      martinFamilyTasks.map((task) => task.person_id),
+    );
 
     expect(assigneeCoverage.size).toBeGreaterThanOrEqual(5);
 
@@ -75,5 +102,62 @@ describe('db seed data', () => {
     expect(persons).toHaveLength(6);
     expect(tasks.length).toBeGreaterThan(0);
     expect(streaks).toHaveLength(6);
+  });
+
+  it('provides a runnable SQL seed path that is idempotent for local D1', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    applyMigration(db);
+
+    const seedSql = buildLocalSeedSql();
+
+    db.exec(seedSql);
+    db.exec(seedSql);
+
+    const personCount = db
+      .prepare('SELECT COUNT(*) AS count FROM persons')
+      .get() as { count: number };
+    const taskCount = db
+      .prepare('SELECT COUNT(*) AS count FROM tasks')
+      .get() as { count: number };
+    const streakCount = db
+      .prepare('SELECT COUNT(*) AS count FROM streaks')
+      .get() as { count: number };
+
+    expect(personCount.count).toBe(martinFamilyPersons.length);
+    expect(taskCount.count).toBe(martinFamilyTasks.length);
+    expect(streakCount.count).toBe(martinFamilyStreaks.length);
+  });
+
+  it('enforces that seeded tasks stay in the same family as their assignee', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    applyMigration(db);
+    db.exec(buildLocalSeedSql());
+
+    const assignee = martinFamilyPersons[0];
+
+    expect(assignee).toBeDefined();
+    expect(() =>
+      db.exec(`
+        INSERT INTO tasks (
+          id,
+          family_id,
+          person_id,
+          title,
+          emoji,
+          schedule_rules,
+          created_at
+        ) VALUES (
+          'invalid-task',
+          'other-family',
+          '${assignee?.id}',
+          'Broken invariant',
+          '⚠️',
+          '{"days":["MO"]}',
+          '2026-04-08T00:00:00Z'
+        );
+      `),
+    ).toThrow(/foreign key/i);
   });
 });

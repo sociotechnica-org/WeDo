@@ -14,6 +14,8 @@ WeDo is a shared family daily task board for one household and an ambient iPad d
 ```bash
 npm install
 npm run dev
+npm run db:migrate:local
+npm run db:seed:local
 npm run typecheck
 npm run lint
 npm run test

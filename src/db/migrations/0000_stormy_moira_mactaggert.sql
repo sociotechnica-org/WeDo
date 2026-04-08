@@ -8,6 +8,7 @@ CREATE TABLE `persons` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `persons_family_display_order_unique` ON `persons` (`family_id`,`display_order`);--> statement-breakpoint
+CREATE UNIQUE INDEX `persons_family_id_id_unique` ON `persons` (`family_id`,`id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `persons_family_name_unique` ON `persons` (`family_id`,`name`);--> statement-breakpoint
 CREATE TABLE `skip_days` (
 	`id` text PRIMARY KEY NOT NULL,
@@ -46,7 +47,7 @@ CREATE TABLE `tasks` (
 	`emoji` text NOT NULL,
 	`schedule_rules` text NOT NULL,
 	`created_at` text NOT NULL,
-	FOREIGN KEY (`person_id`) REFERENCES `persons`(`id`) ON UPDATE no action ON DELETE cascade,
+	CONSTRAINT "tasks_family_person_fk" FOREIGN KEY (`family_id`,`person_id`) REFERENCES `persons`(`family_id`,`id`) ON UPDATE no action ON DELETE cascade,
 	CONSTRAINT "tasks_schedule_rules_json_valid" CHECK(json_valid("tasks"."schedule_rules"))
 );
 --> statement-breakpoint

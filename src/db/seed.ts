@@ -4,6 +4,7 @@ import {
   streakSchema,
   taskSchema,
   type Person,
+  type ScheduleRules,
   type Streak,
   type Task,
 } from '../types';
@@ -190,7 +191,8 @@ export const martinFamilyTasks = martinTaskRecords.map((task) =>
   taskSchema.parse(task),
 );
 
-export const martinFamilyStreaks = martinStreakRecords satisfies ReadonlyArray<Streak>;
+export const martinFamilyStreaks =
+  martinStreakRecords satisfies ReadonlyArray<Streak>;
 
 export const martinSeedData = {
   family_id: martinFamilyId,
@@ -200,6 +202,60 @@ export const martinSeedData = {
   skip_days: [] as const,
   streaks: martinFamilyStreaks,
 };
+
+type SeedSqlValue = null | number | string | boolean | ScheduleRules;
+
+function toSqlLiteral(value: SeedSqlValue): string {
+  if (value === null) {
+    return 'NULL';
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value) : 'NULL';
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? '1' : '0';
+  }
+
+  const textValue = typeof value === 'string' ? value : JSON.stringify(value);
+
+  return `'${textValue.replaceAll("'", "''")}'`;
+}
+
+function buildInsertStatement(
+  tableName: string,
+  rows: ReadonlyArray<Record<string, SeedSqlValue>>,
+): string {
+  const [firstRow] = rows;
+
+  if (!firstRow) {
+    return '';
+  }
+
+  const columns = Object.keys(firstRow);
+  const values = rows
+    .map(
+      (row) =>
+        `(${columns.map((column) => toSqlLiteral(row[column] ?? null)).join(', ')})`,
+    )
+    .join(',\n');
+
+  return [
+    `INSERT OR IGNORE INTO \`${tableName}\` (${columns.map((column) => `\`${column}\``).join(', ')})`,
+    `VALUES ${values};`,
+  ].join('\n');
+}
+
+export function buildLocalSeedSql(): string {
+  return [
+    buildInsertStatement('persons', martinFamilyPersons),
+    buildInsertStatement('tasks', martinFamilyTasks),
+    buildInsertStatement('streaks', martinFamilyStreaks),
+  ]
+    .filter((statement) => statement.length > 0)
+    .join('\n\n');
+}
 
 export async function seedDatabase(client: DatabaseClient): Promise<void> {
   const db = getDatabase(client);
