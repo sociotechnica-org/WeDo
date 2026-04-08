@@ -1,4 +1,9 @@
-import type { FamilyBoardState, IsoDate, TaskCompletion } from '@/types';
+import type {
+  FamilyBoardState,
+  IsoDate,
+  SkipDay,
+  TaskCompletion,
+} from '@/types';
 
 type RealtimeState =
   | { status: 'live' }
@@ -56,6 +61,26 @@ export function withBoardSnapshot(
     ...currentState,
     board,
   };
+}
+
+function createOptimisticSkipDay(
+  board: FamilyBoardState,
+  createdAt: string,
+): SkipDay {
+  return {
+    id: `optimistic:skip-day:${board.day.date}`,
+    family_id: board.family_id,
+    date: board.day.date,
+    reason: null,
+    created_at: createdAt,
+  };
+}
+
+export function findBoardSkipDay(board: FamilyBoardState): SkipDay | null {
+  return (
+    board.people.find((personState) => personState.skip_day !== null)
+      ?.skip_day ?? null
+  );
 }
 
 function createOptimisticCompletion(
@@ -133,6 +158,22 @@ export function toggleTaskCompletionInBoard(
   };
 }
 
+export function toggleSkipDayInBoard(
+  board: FamilyBoardState,
+  skipped: boolean,
+  createdAt: string,
+): FamilyBoardState {
+  const skipDay = skipped ? createOptimisticSkipDay(board, createdAt) : null;
+
+  return {
+    ...board,
+    people: board.people.map((personState) => ({
+      ...personState,
+      skip_day: skipDay,
+    })),
+  };
+}
+
 export function withOptimisticTaskToggle(
   currentState: ReadyFamilyBoardState,
   taskId: string,
@@ -151,6 +192,17 @@ export function withOptimisticTaskToggle(
   return {
     ...currentState,
     board,
+  };
+}
+
+export function withOptimisticSkipDay(
+  currentState: ReadyFamilyBoardState,
+  skipped: boolean,
+  createdAt: string,
+): ReadyFamilyBoardState {
+  return {
+    ...currentState,
+    board: toggleSkipDayInBoard(currentState.board, skipped, createdAt),
   };
 }
 

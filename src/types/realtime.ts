@@ -31,6 +31,14 @@ export const taskToggledMessageSchema = z
   })
   .strict();
 
+export const skipDayToggledMessageSchema = z
+  .object({
+    type: z.literal('skip_day_toggled'),
+    date: isoDateSchema,
+    skipped: z.boolean(),
+  })
+  .strict();
+
 export const stateUpdateMessageSchema = z
   .object({
     type: z.literal('state_update'),
@@ -41,6 +49,7 @@ export const stateUpdateMessageSchema = z
 export const clientWebSocketMessageSchema = z.discriminatedUnion('type', [
   initRequestSchema,
   taskToggledMessageSchema,
+  skipDayToggledMessageSchema,
 ]);
 
 export const serverWebSocketMessageSchema = z.discriminatedUnion('type', [
@@ -52,12 +61,14 @@ export const webSocketMessageSchema = z.discriminatedUnion('type', [
   initRequestSchema,
   initResponseSchema,
   taskToggledMessageSchema,
+  skipDayToggledMessageSchema,
   stateUpdateMessageSchema,
 ]);
 
 export type InitRequest = z.infer<typeof initRequestSchema>;
 export type InitResponse = z.infer<typeof initResponseSchema>;
 export type TaskToggledMessage = z.infer<typeof taskToggledMessageSchema>;
+export type SkipDayToggledMessage = z.infer<typeof skipDayToggledMessageSchema>;
 export type StateUpdateMessage = z.infer<typeof stateUpdateMessageSchema>;
 export type ClientWebSocketMessage = z.infer<
   typeof clientWebSocketMessageSchema

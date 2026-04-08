@@ -10,7 +10,8 @@ import { useReadyBoard } from '@/ui/routes/use-ready-board';
 
 export function SingleListRoute() {
   const { personId } = useParams();
-  const { board, createTask, realtime, todayDate, toggleTask } = useReadyBoard();
+  const { board, createTask, realtime, todayDate, toggleSkipDay, toggleTask } =
+    useReadyBoard();
   const personIndex = board.people.findIndex(
     (personState) => personState.person.id === personId,
   );
@@ -51,6 +52,7 @@ export function SingleListRoute() {
   }
 
   const focusedPerson = personState.person;
+  const isSkipped = personState.skip_day !== null;
   const palette = getPersonPalette(personIndex);
   const completedCount = personState.tasks.filter(
     (task) => task.completion !== null,
@@ -103,7 +105,13 @@ export function SingleListRoute() {
               </Link>
             </div>
 
-            <DayNavigation currentDate={board.day.date} todayDate={todayDate} />
+            <DayNavigation
+              currentDate={board.day.date}
+              isSkipped={isSkipped}
+              onToggleSkipDay={toggleSkipDay}
+              skipToggleDisabled={realtime.status !== 'live'}
+              todayDate={todayDate}
+            />
 
             <div className="justify-self-start md:justify-self-end">
               <button
@@ -150,7 +158,10 @@ export function SingleListRoute() {
             </p>
           </div>
 
-          <ul className="relative mx-auto mt-10 max-w-4xl space-y-4">
+          <ul
+            className={`relative mx-auto mt-10 max-w-4xl space-y-4 transition-opacity duration-200 ${isSkipped ? 'opacity-55' : 'opacity-100'}`}
+            data-testid="single-list-task-list"
+          >
             {personState.tasks.map((task) => (
               <TaskRow
                 disabled={realtime.status !== 'live'}

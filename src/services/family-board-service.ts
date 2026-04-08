@@ -1,9 +1,11 @@
 import {
+  createSkipDay,
   createTask,
   createTaskCompletion,
   getFamilyBoardSourceData,
   getFamilyPerson,
   getFamilyTask,
+  removeSkipDay,
   removeTaskCompletion,
   type FamilyBoardSourceData,
 } from '@/db/family-board-repository';
@@ -50,6 +52,13 @@ type CreateTaskInput = {
   title: string;
   emoji: string;
   scheduleRules: ScheduleRules;
+  createdAt?: IsoTimestamp;
+};
+
+type ToggleSkipDayInput = {
+  familyId: string;
+  date: IsoDate;
+  skipped: boolean;
   createdAt?: IsoTimestamp;
 };
 
@@ -208,6 +217,23 @@ export async function toggleTaskCompletion(
     });
   } else {
     await removeTaskCompletion(client, input.taskId, input.date);
+  }
+
+  await syncFamilyCurrentStreaks(client, input.familyId, { force: true });
+}
+
+export async function toggleSkipDay(
+  client: DatabaseClient,
+  input: ToggleSkipDayInput,
+): Promise<void> {
+  if (input.skipped) {
+    await createSkipDay(client, {
+      familyId: input.familyId,
+      date: input.date,
+      createdAt: getCreatedAtTimestamp(input.createdAt),
+    });
+  } else {
+    await removeSkipDay(client, input.familyId, input.date);
   }
 
   await syncFamilyCurrentStreaks(client, input.familyId, { force: true });

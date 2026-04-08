@@ -26,10 +26,12 @@ export function PersonColumn({ personState, paletteIndex }: PersonColumnProps) {
   const completedCount = personState.tasks.filter(
     (task) => task.completion !== null,
   ).length;
+  const isSkipped = personState.skip_day !== null;
 
   return (
     <section
       className="paper-panel relative flex min-h-[28rem] flex-col overflow-hidden rounded-[1.9rem] border border-[rgba(87,72,58,0.08)] px-4 py-5 shadow-[0_18px_36px_rgba(82,65,48,0.06)] lg:min-h-[34rem]"
+      data-skipped={isSkipped ? 'true' : 'false'}
       data-testid="person-column"
       style={
         {
@@ -60,7 +62,10 @@ export function PersonColumn({ personState, paletteIndex }: PersonColumnProps) {
         </div>
       </div>
 
-      <ul className="relative mt-6 space-y-3">
+      <ul
+        className={`relative mt-6 space-y-3 transition-opacity duration-200 ${isSkipped ? 'opacity-55' : 'opacity-100'}`}
+        data-testid="person-task-list"
+      >
         {personState.tasks.map((task) => (
           <TaskRow
             key={task.task.id}

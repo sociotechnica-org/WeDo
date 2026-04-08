@@ -6,11 +6,13 @@ import {
   type BoardResponse,
   type InitRequest,
   type IsoDate,
+  type SkipDayToggledMessage,
   type ServerWebSocketMessage,
   type TaskToggledMessage,
 } from '@/types';
 import {
   findTaskCompletionStatus,
+  findBoardSkipDay,
   getRealtimeCloseMessage,
   getRealtimeErrorMessage,
   isReadyBoardViewFor,
@@ -19,6 +21,7 @@ import {
   withBoardSnapshot,
   createReadyFamilyBoardState,
   withOptimisticTaskToggle,
+  withOptimisticSkipDay,
   withRealtimeIssue,
 } from './family-board-state';
 
@@ -41,8 +44,10 @@ function buildBoardUrl(requestedDay?: IsoDate): string {
 }
 
 function buildCreateTaskUrl(familyId: string): string {
-  return new URL(`/api/families/${familyId}/tasks`, window.location.origin)
-    .toString();
+  return new URL(
+    `/api/families/${familyId}/tasks`,
+    window.location.origin,
+  ).toString();
 }
 
 async function getMessageText(
@@ -139,6 +144,55 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     [commitState],
   );
 
+  const toggleSkipDay = useCallback((): boolean => {
+    const currentState = stateRef.current;
+
+    if (currentState.status !== 'ready') {
+      return false;
+    }
+
+    const socket = socketRef.current;
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      commitState(
+        withRealtimeIssue(
+          currentState,
+          'The board is still visible, but live updates are paused.',
+        ),
+      );
+
+      return false;
+    }
+
+    const createdAt = new Date().toISOString();
+    const nextSkipped = findBoardSkipDay(currentState.board) === null;
+    const optimisticState = withOptimisticSkipDay(
+      currentState,
+      nextSkipped,
+      createdAt,
+    );
+    const message = {
+      type: 'skip_day_toggled',
+      date: currentState.board.day.date,
+      skipped: nextSkipped,
+    } satisfies SkipDayToggledMessage;
+
+    commitState(optimisticState);
+
+    try {
+      socket.send(JSON.stringify(message));
+      return true;
+    } catch {
+      commitState(
+        withRealtimeIssue(
+          currentState,
+          'The board is still visible, but live updates are paused.',
+        ),
+      );
+      return false;
+    }
+  }, [commitState]);
+
   const createTask = useCallback(
     async (personId: string, rawInput: string): Promise<void> => {
       const currentState = stateRef.current;
@@ -167,7 +221,13 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
           const message =
             (await response.text()) || 'Task creation failed unexpectedly.';
 
-          if (!isReadyBoardViewFor(stateRef.current, requestFamilyId, requestViewedDate)) {
+          if (
+            !isReadyBoardViewFor(
+              stateRef.current,
+              requestFamilyId,
+              requestViewedDate,
+            )
+          ) {
             return;
           }
 
@@ -179,13 +239,21 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
         );
         const latestState = stateRef.current;
 
-        if (!isReadyBoardViewFor(latestState, requestFamilyId, requestViewedDate)) {
+        if (
+          !isReadyBoardViewFor(latestState, requestFamilyId, requestViewedDate)
+        ) {
           return;
         }
 
         commitState(withBoardSnapshot(latestState, payload.state));
       } catch (error) {
-        if (!isReadyBoardViewFor(stateRef.current, requestFamilyId, requestViewedDate)) {
+        if (
+          !isReadyBoardViewFor(
+            stateRef.current,
+            requestFamilyId,
+            requestViewedDate,
+          )
+        ) {
           return;
         }
 
@@ -361,14 +429,17 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
   return {
     ...state,
     createTask,
+    toggleSkipDay,
     toggleTask,
   };
 }
 
 type ToggleTask = (taskId: string) => boolean;
+type ToggleSkipDay = () => boolean;
 type CreateTask = (personId: string, rawInput: string) => Promise<void>;
 
 export type ReadyFamilyBoardViewState = ReadyFamilyBoardState & {
   createTask: CreateTask;
+  toggleSkipDay: ToggleSkipDay;
   toggleTask: ToggleTask;
 };

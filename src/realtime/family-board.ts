@@ -15,6 +15,7 @@ import {
   createRecurringTask,
   FamilyBoardStateError,
   getFamilyBoardState,
+  toggleSkipDay,
   toggleTaskCompletion,
 } from '@/services/family-board-service';
 import { resolveBoardDate } from '@/services/board-service';
@@ -100,7 +101,9 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
   }
 
   private async getStateUpdateMessage(familyId: string, date: IsoDate) {
-    return toStateUpdate(await getFamilyBoardState(this.env.DB, familyId, date));
+    return toStateUpdate(
+      await getFamilyBoardState(this.env.DB, familyId, date),
+    );
   }
 
   private getViewedDatesForFamily(familyId: string): IsoDate[] {
@@ -128,7 +131,11 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
     for (const connection of this.ctx.getWebSockets()) {
       const attachment = tryGetSocketAttachment(connection);
 
-      if (!attachment || attachment.familyId !== familyId || attachment.date !== date) {
+      if (
+        !attachment ||
+        attachment.familyId !== familyId ||
+        attachment.date !== date
+      ) {
         continue;
       }
 
@@ -154,7 +161,10 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
       }
 
       try {
-        updatesByDate.set(date, await this.getStateUpdateMessage(familyId, date));
+        updatesByDate.set(
+          date,
+          await this.getStateUpdateMessage(familyId, date),
+        );
       } catch {
         // A secondary broadcast failure must not turn a successful D1 write
         // into a failed mutation response.
@@ -302,6 +312,34 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
           });
 
           await this.broadcastStateForDate(familyId, resolvedDate);
+          return;
+        }
+        case 'skip_day_toggled': {
+          const runtime = getRuntimeConfig(this.env);
+          const resolvedDate = resolveBoardDate(runtime.timezone, payload.date);
+
+          if (resolvedDate !== payload.date) {
+            throw new FamilyBoardStateError(
+              'Realtime requests cannot target a day beyond tomorrow.',
+            );
+          }
+
+          await toggleSkipDay(this.env.DB, {
+            familyId,
+            date: resolvedDate,
+            skipped: payload.skipped,
+          });
+
+          await this.broadcastStateForViewedDates(
+            familyId,
+            new Map([
+              [
+                resolvedDate,
+                await this.getStateUpdateMessage(familyId, resolvedDate),
+              ],
+            ]),
+          );
+          return;
         }
       }
     } catch (error) {

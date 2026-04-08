@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const repositoryMocks = vi.hoisted(() => ({
+  createSkipDay: vi.fn(),
   createTask: vi.fn(),
   createTaskCompletion: vi.fn(),
   getFamilyBoardSourceData: vi.fn(),
   getFamilyPerson: vi.fn(),
   getFamilyTask: vi.fn(),
+  removeSkipDay: vi.fn(),
   removeTaskCompletion: vi.fn(),
 }));
 
@@ -15,11 +17,13 @@ const streakServiceMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/db/family-board-repository', () => ({
+  createSkipDay: repositoryMocks.createSkipDay,
   createTask: repositoryMocks.createTask,
   createTaskCompletion: repositoryMocks.createTaskCompletion,
   getFamilyBoardSourceData: repositoryMocks.getFamilyBoardSourceData,
   getFamilyPerson: repositoryMocks.getFamilyPerson,
   getFamilyTask: repositoryMocks.getFamilyTask,
+  removeSkipDay: repositoryMocks.removeSkipDay,
   removeTaskCompletion: repositoryMocks.removeTaskCompletion,
 }));
 
@@ -31,6 +35,7 @@ vi.mock('@/services/streak', () => ({
 import {
   FamilyBoardStateError,
   getFamilyBoardState,
+  toggleSkipDay,
   toggleTaskCompletion,
 } from '@/services/family-board-service';
 
@@ -48,11 +53,13 @@ const task = {
 
 describe('family-board-service mutations', () => {
   beforeEach(() => {
+    repositoryMocks.createSkipDay.mockReset();
     repositoryMocks.createTask.mockReset();
     repositoryMocks.createTaskCompletion.mockReset();
     repositoryMocks.getFamilyBoardSourceData.mockReset();
     repositoryMocks.getFamilyPerson.mockReset();
     repositoryMocks.getFamilyTask.mockReset();
+    repositoryMocks.removeSkipDay.mockReset();
     repositoryMocks.removeTaskCompletion.mockReset();
     streakServiceMocks.getFamilyBoardStreaks.mockReset();
     streakServiceMocks.syncFamilyCurrentStreaks.mockReset();
@@ -97,6 +104,48 @@ describe('family-board-service mutations', () => {
     expect(repositoryMocks.removeTaskCompletion).toHaveBeenCalledWith(
       {},
       task.id,
+      '2026-04-08',
+    );
+    expect(streakServiceMocks.syncFamilyCurrentStreaks).toHaveBeenCalledWith(
+      {},
+      task.family_id,
+      { force: true },
+    );
+  });
+
+  it('creates a family skip day and recalculates persisted streak rows', async () => {
+    await toggleSkipDay({} as never, {
+      familyId: task.family_id,
+      date: '2026-04-08',
+      skipped: true,
+      createdAt: '2026-04-08T14:00:00Z',
+    });
+
+    expect(repositoryMocks.createSkipDay).toHaveBeenCalledWith(
+      {},
+      {
+        familyId: task.family_id,
+        date: '2026-04-08',
+        createdAt: '2026-04-08T14:00:00Z',
+      },
+    );
+    expect(streakServiceMocks.syncFamilyCurrentStreaks).toHaveBeenCalledWith(
+      {},
+      task.family_id,
+      { force: true },
+    );
+  });
+
+  it('removes a family skip day and recalculates persisted streak rows', async () => {
+    await toggleSkipDay({} as never, {
+      familyId: task.family_id,
+      date: '2026-04-08',
+      skipped: false,
+    });
+
+    expect(repositoryMocks.removeSkipDay).toHaveBeenCalledWith(
+      {},
+      task.family_id,
       '2026-04-08',
     );
     expect(streakServiceMocks.syncFamilyCurrentStreaks).toHaveBeenCalledWith(

@@ -34,6 +34,12 @@ type TaskCompletionMutation = {
   completedAt: IsoTimestamp;
 };
 
+type SkipDayMutation = {
+  familyId: string;
+  date: IsoDate;
+  createdAt: IsoTimestamp;
+};
+
 type TaskCreationMutation = {
   familyId: string;
   personId: string;
@@ -185,5 +191,40 @@ export async function removeTaskCompletion(
         eq(taskCompletionsTable.task_id, taskId),
         eq(taskCompletionsTable.date, date),
       ),
+    );
+}
+
+export async function createSkipDay(
+  client: DatabaseClient,
+  mutation: SkipDayMutation,
+): Promise<void> {
+  const db = getDatabase(client);
+  const skipDay = skipDaySchema.parse({
+    id: crypto.randomUUID(),
+    family_id: mutation.familyId,
+    date: mutation.date,
+    reason: null,
+    created_at: mutation.createdAt,
+  });
+
+  await db
+    .insert(skipDaysTable)
+    .values(skipDay)
+    .onConflictDoNothing({
+      target: [skipDaysTable.family_id, skipDaysTable.date],
+    });
+}
+
+export async function removeSkipDay(
+  client: DatabaseClient,
+  familyId: string,
+  date: IsoDate,
+): Promise<void> {
+  const db = getDatabase(client);
+
+  await db
+    .delete(skipDaysTable)
+    .where(
+      and(eq(skipDaysTable.family_id, familyId), eq(skipDaysTable.date, date)),
     );
 }
