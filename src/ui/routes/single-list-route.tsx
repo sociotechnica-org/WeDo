@@ -10,8 +10,15 @@ import { useReadyBoard } from '@/ui/routes/use-ready-board';
 
 export function SingleListRoute() {
   const { personId } = useParams();
-  const { board, createTask, realtime, todayDate, toggleSkipDay, toggleTask } =
-    useReadyBoard();
+  const {
+    board,
+    createTask,
+    deleteTask,
+    realtime,
+    todayDate,
+    toggleSkipDay,
+    toggleTask,
+  } = useReadyBoard();
   const personIndex = board.people.findIndex(
     (personState) => personState.person.id === personId,
   );
@@ -166,6 +173,9 @@ export function SingleListRoute() {
               <TaskRow
                 disabled={realtime.status !== 'live'}
                 key={task.task.id}
+                onDelete={() => {
+                  deleteTask(task.task.id);
+                }}
                 onPress={() => {
                   toggleTask(task.task.id);
                 }}

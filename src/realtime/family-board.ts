@@ -14,6 +14,7 @@ import {
 } from '@/types';
 import {
   createRecurringTask,
+  deleteTask,
   FamilyBoardStateError,
   getFamilyBoardState,
   toggleSkipDay,
@@ -300,6 +301,15 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
             new Map(),
             resolvedDate,
           );
+          return;
+        }
+        case 'task_deleted': {
+          await deleteTask(this.env.DB, {
+            familyId,
+            taskId: payload.task_id,
+          });
+
+          await this.broadcastStateForViewedDates(familyId);
           return;
         }
         case 'skip_day_toggled': {

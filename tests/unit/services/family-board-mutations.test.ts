@@ -7,6 +7,8 @@ const repositoryMocks = vi.hoisted(() => ({
   getFamilyBoardSourceData: vi.fn(),
   getFamilyPerson: vi.fn(),
   getFamilyTask: vi.fn(),
+  removeTask: vi.fn(),
+  removeTaskCompletionsForTask: vi.fn(),
   removeSkipDay: vi.fn(),
   removeTaskCompletion: vi.fn(),
 }));
@@ -23,6 +25,8 @@ vi.mock('@/db/family-board-repository', () => ({
   getFamilyBoardSourceData: repositoryMocks.getFamilyBoardSourceData,
   getFamilyPerson: repositoryMocks.getFamilyPerson,
   getFamilyTask: repositoryMocks.getFamilyTask,
+  removeTask: repositoryMocks.removeTask,
+  removeTaskCompletionsForTask: repositoryMocks.removeTaskCompletionsForTask,
   removeSkipDay: repositoryMocks.removeSkipDay,
   removeTaskCompletion: repositoryMocks.removeTaskCompletion,
 }));
@@ -33,6 +37,7 @@ vi.mock('@/services/streak', () => ({
 }));
 
 import {
+  deleteTask,
   FamilyBoardStateError,
   getFamilyBoardState,
   toggleSkipDay,
@@ -59,6 +64,8 @@ describe('family-board-service mutations', () => {
     repositoryMocks.getFamilyBoardSourceData.mockReset();
     repositoryMocks.getFamilyPerson.mockReset();
     repositoryMocks.getFamilyTask.mockReset();
+    repositoryMocks.removeTask.mockReset();
+    repositoryMocks.removeTaskCompletionsForTask.mockReset();
     repositoryMocks.removeSkipDay.mockReset();
     repositoryMocks.removeTaskCompletion.mockReset();
     streakServiceMocks.getFamilyBoardStreaks.mockReset();
@@ -210,6 +217,45 @@ describe('family-board-service mutations', () => {
       }),
     ).rejects.toThrow(FamilyBoardStateError);
 
+    expect(streakServiceMocks.syncFamilyCurrentStreaks).not.toHaveBeenCalled();
+  });
+
+  it('deletes a family task, clears its completions, and recalculates streak rows', async () => {
+    repositoryMocks.getFamilyTask.mockResolvedValue(task);
+
+    await deleteTask({} as never, {
+      familyId: task.family_id,
+      taskId: task.id,
+    });
+
+    expect(repositoryMocks.removeTaskCompletionsForTask).toHaveBeenCalledWith(
+      {},
+      task.id,
+    );
+    expect(repositoryMocks.removeTask).toHaveBeenCalledWith(
+      {},
+      task.family_id,
+      task.id,
+    );
+    expect(streakServiceMocks.syncFamilyCurrentStreaks).toHaveBeenCalledWith(
+      {},
+      task.family_id,
+      { force: true },
+    );
+  });
+
+  it('rejects task deletion when the task is outside the family scope', async () => {
+    repositoryMocks.getFamilyTask.mockResolvedValue(null);
+
+    await expect(
+      deleteTask({} as never, {
+        familyId: task.family_id,
+        taskId: task.id,
+      }),
+    ).rejects.toThrow(FamilyBoardStateError);
+
+    expect(repositoryMocks.removeTaskCompletionsForTask).not.toHaveBeenCalled();
+    expect(repositoryMocks.removeTask).not.toHaveBeenCalled();
     expect(streakServiceMocks.syncFamilyCurrentStreaks).not.toHaveBeenCalled();
   });
 });

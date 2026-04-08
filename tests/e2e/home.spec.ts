@@ -210,3 +210,35 @@ test('toggles the current day into a skipped, dimmed state and can clear it agai
   await expect(dayLabel).toHaveAttribute('data-skipped', 'false');
   await expect(firstColumn).toHaveAttribute('data-skipped', 'false');
 });
+
+test('deletes a task from the focused single-list view and removes it from the dashboard', async ({
+  page,
+}) => {
+  await page.setViewportSize({
+    width: 1180,
+    height: 820,
+  });
+
+  await page.goto('/');
+  await page.getByRole('link', { name: "Open Jess's list" }).click();
+
+  const taskToggle = page.getByRole('button', { name: 'Toggle Kitchen reset' });
+  await taskToggle.hover();
+
+  const deleteButton = page.getByRole('button', {
+    name: 'Delete Kitchen reset',
+  });
+
+  await expect(deleteButton).toBeVisible();
+  await deleteButton.click();
+
+  await expect(page.getByText('Kitchen reset')).toHaveCount(0);
+  await expect(page.getByText('No tasks for this day.')).toBeVisible();
+  await expect(
+    page.getByText('0 of 0 tasks marked for this day.'),
+  ).toBeVisible();
+
+  await page.getByRole('link', { name: 'Back' }).click();
+
+  await expect(page.getByText('Kitchen reset')).toHaveCount(0);
+});

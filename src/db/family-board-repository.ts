@@ -158,6 +158,29 @@ export async function createTask(
   return task;
 }
 
+export async function removeTaskCompletionsForTask(
+  client: DatabaseClient,
+  taskId: string,
+): Promise<void> {
+  const db = getDatabase(client);
+
+  await db
+    .delete(taskCompletionsTable)
+    .where(eq(taskCompletionsTable.task_id, taskId));
+}
+
+export async function removeTask(
+  client: DatabaseClient,
+  familyId: string,
+  taskId: string,
+): Promise<void> {
+  const db = getDatabase(client);
+
+  await db
+    .delete(tasksTable)
+    .where(and(eq(tasksTable.family_id, familyId), eq(tasksTable.id, taskId)));
+}
+
 export async function createTaskCompletion(
   client: DatabaseClient,
   mutation: TaskCompletionMutation,

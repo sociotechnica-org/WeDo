@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { familyBoardStateSchema } from '@/types';
 import {
   createReadyFamilyBoardState,
+  deleteTaskInBoard,
   findBoardSkipDay,
   findTaskCompletionStatus,
   getRealtimeCloseMessage,
@@ -11,6 +12,7 @@ import {
   toggleTaskCompletionInBoard,
   withBoardSnapshot,
   withOptimisticSkipDay,
+  withOptimisticTaskDeletion,
   withOptimisticTaskToggle,
   withRealtimeIssue,
 } from '@/ui/hooks/family-board-state';
@@ -198,6 +200,24 @@ describe('family-board-state helpers', () => {
       ),
     ).toBeNull();
     expect(findTaskCompletionStatus(board, 'task-missing')).toBeNull();
+  });
+
+  it('removes a task from the optimistic board snapshot', () => {
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+    const optimisticState = withOptimisticTaskDeletion(
+      readyState,
+      'task-kitchen',
+    );
+
+    expect(optimisticState?.board.people[0]?.tasks).toEqual([]);
+  });
+
+  it('returns null when an optimistic delete targets a missing task', () => {
+    expect(deleteTaskInBoard(board, 'task-missing')).toBeNull();
   });
 
   it('applies an optimistic skip day to every person on the current board snapshot', () => {

@@ -158,6 +158,42 @@ export function toggleTaskCompletionInBoard(
   };
 }
 
+export function deleteTaskInBoard(
+  board: FamilyBoardState,
+  taskId: string,
+): FamilyBoardState | null {
+  let hasUpdated = false;
+
+  const people = board.people.map((personState) => {
+    const tasks = personState.tasks.filter((task) => {
+      if (task.task.id !== taskId) {
+        return true;
+      }
+
+      hasUpdated = true;
+      return false;
+    });
+
+    if (tasks.length === personState.tasks.length) {
+      return personState;
+    }
+
+    return {
+      ...personState,
+      tasks,
+    };
+  });
+
+  if (!hasUpdated) {
+    return null;
+  }
+
+  return {
+    ...board,
+    people,
+  };
+}
+
 export function toggleSkipDayInBoard(
   board: FamilyBoardState,
   skipped: boolean,
@@ -203,6 +239,22 @@ export function withOptimisticSkipDay(
   return {
     ...currentState,
     board: toggleSkipDayInBoard(currentState.board, skipped, createdAt),
+  };
+}
+
+export function withOptimisticTaskDeletion(
+  currentState: ReadyFamilyBoardState,
+  taskId: string,
+): ReadyFamilyBoardState | null {
+  const board = deleteTaskInBoard(currentState.board, taskId);
+
+  if (!board) {
+    return null;
+  }
+
+  return {
+    ...currentState,
+    board,
   };
 }
 

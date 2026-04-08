@@ -7,6 +7,7 @@ import {
   type InitRequest,
   type IsoDate,
   type SkipDayToggledMessage,
+  type TaskDeletedMessage,
   type ServerWebSocketMessage,
   type TaskToggledMessage,
 } from '@/types';
@@ -21,6 +22,7 @@ import {
   withBoardSnapshot,
   createReadyFamilyBoardState,
   withOptimisticTaskToggle,
+  withOptimisticTaskDeletion,
   withOptimisticSkipDay,
   withRealtimeIssue,
 } from './family-board-state';
@@ -192,6 +194,56 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
       return false;
     }
   }, [commitState]);
+
+  const deleteTask = useCallback(
+    (taskId: string): boolean => {
+      const currentState = stateRef.current;
+
+      if (currentState.status !== 'ready') {
+        return false;
+      }
+
+      const socket = socketRef.current;
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        commitState(
+          withRealtimeIssue(
+            currentState,
+            'The board is still visible, but live updates are paused.',
+          ),
+        );
+
+        return false;
+      }
+
+      const optimisticState = withOptimisticTaskDeletion(currentState, taskId);
+
+      if (!optimisticState) {
+        return false;
+      }
+
+      const message = {
+        type: 'task_deleted',
+        task_id: taskId,
+      } satisfies TaskDeletedMessage;
+
+      commitState(optimisticState);
+
+      try {
+        socket.send(JSON.stringify(message));
+        return true;
+      } catch {
+        commitState(
+          withRealtimeIssue(
+            currentState,
+            'The board is still visible, but live updates are paused.',
+          ),
+        );
+        return false;
+      }
+    },
+    [commitState],
+  );
 
   const createTask = useCallback(
     async (personId: string, rawInput: string): Promise<void> => {
@@ -429,17 +481,20 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
   return {
     ...state,
     createTask,
+    deleteTask,
     toggleSkipDay,
     toggleTask,
   };
 }
 
 type ToggleTask = (taskId: string) => boolean;
+type DeleteTask = (taskId: string) => boolean;
 type ToggleSkipDay = () => boolean;
 type CreateTask = (personId: string, rawInput: string) => Promise<void>;
 
 export type ReadyFamilyBoardViewState = ReadyFamilyBoardState & {
   createTask: CreateTask;
+  deleteTask: DeleteTask;
   toggleSkipDay: ToggleSkipDay;
   toggleTask: ToggleTask;
 };
