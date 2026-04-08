@@ -28,14 +28,35 @@ export function getDayCodeForDate(
   return getDayCodeForIsoDate(getIsoDateForTimezone(timezone, date));
 }
 
+function isDayCodeScheduled(
+  scheduleRules: ScheduleRules,
+  dayCode: DayCode,
+): boolean {
+  return dayCode !== 'SU' && scheduleRules.days.includes(dayCode);
+}
+
+export function isTaskScheduledForIsoDate(
+  scheduleRules: ScheduleRules,
+  date: IsoDate,
+): boolean {
+  return isDayCodeScheduled(scheduleRules, getDayCodeForIsoDate(date));
+}
+
 export function isTaskScheduledForDate(
   scheduleRules: ScheduleRules,
   date: Date,
   timezone: Timezone = wedoTimezone,
 ): boolean {
-  const dayCode = getDayCodeForDate(date, timezone);
+  return isDayCodeScheduled(scheduleRules, getDayCodeForDate(date, timezone));
+}
 
-  return dayCode !== 'SU' && scheduleRules.days.includes(dayCode);
+export function getTasksForIsoDate(
+  tasks: ReadonlyArray<Task>,
+  date: IsoDate,
+): Task[] {
+  return tasks.filter((task) =>
+    isTaskScheduledForIsoDate(task.schedule_rules, date),
+  );
 }
 
 export function getTasksForDate(

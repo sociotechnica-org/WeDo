@@ -28,8 +28,3 @@ export function getIsoDateForTimezone(
 
   return isoDateSchema.parse(`${year}-${month}-${day}`);
 }
-
-export function getDateForIsoDate(date: IsoDate): Date {
-  // UTC noon keeps the same civil day when formatted in America/New_York.
-  return new Date(`${date}T12:00:00.000Z`);
-}

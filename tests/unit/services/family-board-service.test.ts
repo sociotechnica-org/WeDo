@@ -148,7 +148,9 @@ describe('family-board-service', () => {
       date: '2026-04-05',
       is_sunday: true,
     });
-    expect(state.people.every((person) => person.tasks.length === 0)).toBe(true);
+    expect(state.people.every((person) => person.tasks.length === 0)).toBe(
+      true,
+    );
   });
 
   it('rejects board-state assembly for a family with no people', () => {

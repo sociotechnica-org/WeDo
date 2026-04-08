@@ -3,7 +3,9 @@ import {
   getDayCodeForDate,
   getDayCodeForIsoDate,
   getTasksForDate,
+  getTasksForIsoDate,
   isTaskScheduledForDate,
+  isTaskScheduledForIsoDate,
 } from '@/services/recurrence';
 import { scheduleRulesSchema, taskSchema } from '@/types';
 
@@ -47,12 +49,8 @@ describe('recurrence service', () => {
   });
 
   it('anchors Date-based day lookup to America/New_York', () => {
-    expect(
-      getDayCodeForDate(new Date('2026-04-08T03:30:00Z')),
-    ).toBe('TU');
-    expect(
-      getDayCodeForDate(new Date('2026-04-08T14:00:00Z')),
-    ).toBe('WE');
+    expect(getDayCodeForDate(new Date('2026-04-08T03:30:00Z'))).toBe('TU');
+    expect(getDayCodeForDate(new Date('2026-04-08T14:00:00Z'))).toBe('WE');
   });
 
   it('evaluates schedule rules for non-Sunday dates', () => {
@@ -62,6 +60,12 @@ describe('recurrence service', () => {
     expect(
       isTaskScheduledForDate(weekdayRules, new Date('2026-04-08T16:00:00Z')),
     ).toBe(false);
+  });
+
+  it('evaluates schedule rules directly from ISO dates', () => {
+    expect(isTaskScheduledForIsoDate(weekdayRules, '2026-04-07')).toBe(true);
+    expect(isTaskScheduledForIsoDate(weekdayRules, '2026-04-08')).toBe(false);
+    expect(isTaskScheduledForIsoDate(sundayRules, '2026-04-05')).toBe(false);
   });
 
   it('treats Sunday as unscheduled even when SU is present in the rules', () => {
@@ -84,5 +88,15 @@ describe('recurrence service', () => {
         new Date('2026-04-05T16:00:00Z'),
       ),
     ).toEqual([]);
+  });
+
+  it('returns only scheduled tasks for an ISO date and materializes no tasks on Sunday', () => {
+    expect(getTasksForIsoDate([weekdayTask, sundayTask], '2026-04-07')).toEqual(
+      [weekdayTask],
+    );
+
+    expect(getTasksForIsoDate([weekdayTask, sundayTask], '2026-04-05')).toEqual(
+      [],
+    );
   });
 });
