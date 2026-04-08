@@ -309,6 +309,8 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
             taskId: payload.task_id,
           });
 
+          // Removing a recurring task changes which rows exist on every viewed
+          // date, so deletion refreshes all open family snapshots.
           await this.broadcastStateForViewedDates(familyId);
           return;
         }

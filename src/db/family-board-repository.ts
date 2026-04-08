@@ -181,6 +181,34 @@ export async function removeTask(
     .where(and(eq(tasksTable.family_id, familyId), eq(tasksTable.id, taskId)));
 }
 
+export async function removeTaskWithCompletions(
+  client: DatabaseClient,
+  familyId: string,
+  taskId: string,
+): Promise<void> {
+  await client.batch([
+    client
+      .prepare('delete from task_completions where task_id = ?1')
+      .bind(taskId),
+    client
+      .prepare('delete from tasks where family_id = ?1 and id = ?2')
+      .bind(familyId, taskId),
+    client
+      .prepare(
+        `
+          update streaks
+          set evaluated_through_date = null
+          where person_id in (
+            select id
+            from persons
+            where family_id = ?1
+          )
+        `,
+      )
+      .bind(familyId),
+  ]);
+}
+
 export async function createTaskCompletion(
   client: DatabaseClient,
   mutation: TaskCompletionMutation,

@@ -24,6 +24,7 @@ import {
   withOptimisticTaskToggle,
   withOptimisticTaskDeletion,
   withOptimisticSkipDay,
+  withRecoveredRealtimeIssue,
   withRealtimeIssue,
 } from './family-board-state';
 
@@ -72,6 +73,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
   });
   const socketRef = useRef<WebSocket | null>(null);
   const stateRef = useRef<FamilyBoardViewState>(state);
+  const confirmedStateRef = useRef<ReadyFamilyBoardState | null>(null);
 
   // Keep the ref and React state in sync so async socket callbacks always
   // reconcile against the latest board snapshot.
@@ -322,6 +324,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     let isDisposed = false;
     let hasInitialized = false;
 
+    confirmedStateRef.current = null;
     commitState({
       status: 'loading',
     });
@@ -378,13 +381,14 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
                 return;
               }
 
-              commitState(
-                createReadyFamilyBoardState(
-                  payload.state,
-                  bootstrap.board.householdName,
-                  bootstrap.board.todayDate,
-                ),
+              const confirmedState = createReadyFamilyBoardState(
+                payload.state,
+                bootstrap.board.householdName,
+                bootstrap.board.todayDate,
               );
+
+              confirmedStateRef.current = confirmedState;
+              commitState(confirmedState);
             } catch (error) {
               if (isDisposed) {
                 return;
@@ -438,7 +442,15 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
           }
 
           if (hasInitialized) {
-            commitState(withRealtimeIssue(stateRef.current, message));
+            commitState(
+              event.code === 1008
+                ? withRecoveredRealtimeIssue(
+                    stateRef.current,
+                    confirmedStateRef.current,
+                    message,
+                  )
+                : withRealtimeIssue(stateRef.current, message),
+            );
             return;
           }
 

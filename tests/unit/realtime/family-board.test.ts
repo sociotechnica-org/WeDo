@@ -529,6 +529,10 @@ describe('FamilyBoard durable object', () => {
 
   it('deletes a task and broadcasts refreshed state to every viewed date', async () => {
     const ctx = new FakeDurableObjectState();
+    const yesterdaySocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-07',
+    });
     const todaySocket = new FakeWebSocket({
       familyId: 'family-maple',
       date: '2026-04-08',
@@ -539,6 +543,7 @@ describe('FamilyBoard durable object', () => {
     });
     const room = new FamilyBoard(ctx as never, { DB: {} } as never);
 
+    ctx.acceptWebSocket(yesterdaySocket);
     ctx.acceptWebSocket(todaySocket);
     ctx.acceptWebSocket(tomorrowSocket);
     deleteTask.mockResolvedValue(undefined);
@@ -571,14 +576,21 @@ describe('FamilyBoard durable object', () => {
       1,
       {},
       'family-maple',
-      '2026-04-08',
+      '2026-04-07',
     );
     expect(getFamilyBoardState).toHaveBeenNthCalledWith(
       2,
       {},
       'family-maple',
+      '2026-04-08',
+    );
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      3,
+      {},
+      'family-maple',
       '2026-04-09',
     );
+    expect(yesterdaySocket.sent).toHaveLength(1);
     expect(todaySocket.sent).toHaveLength(1);
     expect(tomorrowSocket.sent).toHaveLength(1);
   });

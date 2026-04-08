@@ -14,6 +14,7 @@ This PR includes:
 - client-side action wiring so Single List View can request deletion and optimistically remove the task locally
 - single-list-only delete affordances: swipe-left reveal for touch layouts and hover/focus reveal for pointer layouts
 - regression tests across contracts, service mutations, realtime behavior, optimistic state updates, route rendering, and end-to-end deletion flow
+- review-driven hardening for the existing delete slice: atomic D1 delete batching, optimistic rollback on rejected realtime deletes, hidden-control focus safety, and locked swipe-direction handling
 
 ## Non-Goals
 
@@ -32,6 +33,8 @@ This PR does not include:
 - The Durable Object already fans out refreshed `state_update` snapshots after mutations, so this slice should reuse full-board broadcasts instead of inventing a bespoke server event.
 - D1 is already the source of truth for tasks and task completions. Deletion must remove durable rows first, then broadcast refreshed state.
 - The current `TaskRow` component renders the entire single-list row as one full-width button. That structure needs to be reshaped so row tap-to-toggle and trash tap/click can coexist without invalid nested buttons.
+- Review feedback on the current branch identified four concrete gaps to close in this pass: the task row and its completions are removed by separate writes instead of one atomic D1 batch, optimistic deletion does not restore the last confirmed board on server rejection, the hidden delete button remains focusable before it is revealed, and swipe intent is re-evaluated on every move instead of being locked once the gesture direction is clear.
+- The deletion broadcast intentionally refreshes every viewed date, not just dates at or after the current view, because removing a recurring task changes board composition across the full family timeline.
 - The repo expects a Bridget briefing, but there is no Bridget tool and no checked-in `CONTEXT_BRIEFING.md` in this workspace. For this slice, the Alexandria cards, ADRs, checked-in ticket docs, and sanitized issue summary are the context briefing source.
 
 ## Affected Layers And Boundaries
@@ -98,8 +101,9 @@ Failure and edge cases to guard:
 5. Update the family Durable Object websocket handler to process task deletion and broadcast refreshed board state for every affected viewed date.
 6. Extend the board UI hook and optimistic-state helpers with a delete action that removes the task from the current snapshot immediately while preserving realtime-degraded safeguards.
 7. Refactor the single-list `TaskRow` structure so row toggle and trash affordance can coexist, then implement touch swipe reveal plus desktop hover/focus reveal in the existing watercolor / letterpress language.
-8. Add regression tests across contracts, services, realtime, optimistic helpers, route rendering, and the end-to-end focused-list delete flow.
-9. Run required checks, verify the UI in local Chrome via Playwright, review the diff, and leave the branch ready for PR update or creation.
+8. Harden the delete path by batching the task-row delete, completion cleanup, and streak-cache invalidation into one D1 write, restoring the last confirmed board snapshot when the server rejects an optimistic delete, locking swipe direction once the gesture clears the dead zone, and keeping the hidden trash button out of the tab order until revealed.
+9. Add regression tests across contracts, services, realtime, optimistic helpers, route rendering, and the end-to-end focused-list delete flow.
+10. Run required checks, verify the UI in local Chrome via Playwright, review the diff, and leave the branch ready for PR update or creation.
 
 ## Tests And Acceptance Scenarios
 
@@ -124,12 +128,15 @@ Acceptance scenarios:
 - D1 deletion removes both the task row and any task-completion rows tied to that task
 - connected clients receive refreshed board state after deletion
 - dashboard rows never expose delete controls
+- a server-rejected delete restores the last confirmed board snapshot instead of leaving the optimistic removal stuck on screen
+- keyboard focus cannot land on the hidden delete control before the row reveal state makes it visible and interactive
 
 ## Risks And Open Questions
 
 - Deleting a recurring task also removes its historical completions. That follows the ticket text, but it is still a meaningful product tradeoff because it affects past streak calculations; this slice follows the issue direction and existing D1/streak model.
 - Pointer and touch affordances need to coexist without accidental deletes or broken toggles. The row structure must separate toggle hit area from trash hit area cleanly.
 - The visual language forbids generic destructive UI. The trash affordance must stay muted and handcrafted rather than introducing bright red alarm styling.
+- The delete write needs to stay atomic without introducing a broader persistence refactor. This pass keeps the atomicity boundary narrow: batch the task/completion deletes together with streak-cache invalidation in D1, then resync streaks as the follow-up durable recalculation step.
 
 ## Exit Criteria
 

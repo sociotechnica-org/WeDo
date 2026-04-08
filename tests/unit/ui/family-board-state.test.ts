@@ -14,6 +14,7 @@ import {
   withOptimisticSkipDay,
   withOptimisticTaskDeletion,
   withOptimisticTaskToggle,
+  withRecoveredRealtimeIssue,
   withRealtimeIssue,
 } from '@/ui/hooks/family-board-state';
 
@@ -96,6 +97,32 @@ describe('family-board-state helpers', () => {
       realtime: {
         status: 'degraded',
         message: 'The board is still visible, but live updates are paused.',
+      },
+    });
+  });
+
+  it('restores the last confirmed board snapshot when realtime closes after an optimistic change', () => {
+    const confirmedState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+    const optimisticState = withOptimisticTaskDeletion(
+      confirmedState,
+      'task-kitchen',
+    );
+
+    expect(
+      withRecoveredRealtimeIssue(
+        optimisticState!,
+        confirmedState,
+        'Task task-kitchen does not belong to family family-maple.',
+      ),
+    ).toEqual({
+      ...confirmedState,
+      realtime: {
+        status: 'degraded',
+        message: 'Task task-kitchen does not belong to family family-maple.',
       },
     });
   });

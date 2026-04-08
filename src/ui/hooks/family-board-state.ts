@@ -275,6 +275,24 @@ export function withRealtimeIssue(
   };
 }
 
+export function withRecoveredRealtimeIssue(
+  currentState: FamilyBoardViewState,
+  confirmedState: ReadyFamilyBoardState | null,
+  message: string,
+): FamilyBoardViewState {
+  if (confirmedState === null) {
+    return withRealtimeIssue(currentState, message);
+  }
+
+  return {
+    ...confirmedState,
+    realtime: {
+      status: 'degraded',
+      message,
+    },
+  };
+}
+
 export function getRealtimeErrorMessage(hasInitialized: boolean) {
   return hasInitialized
     ? 'The board is still visible, but live updates may be unavailable.'

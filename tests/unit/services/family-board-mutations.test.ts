@@ -11,6 +11,7 @@ const repositoryMocks = vi.hoisted(() => ({
   removeTaskCompletionsForTask: vi.fn(),
   removeSkipDay: vi.fn(),
   removeTaskCompletion: vi.fn(),
+  removeTaskWithCompletions: vi.fn(),
 }));
 
 const streakServiceMocks = vi.hoisted(() => ({
@@ -29,6 +30,7 @@ vi.mock('@/db/family-board-repository', () => ({
   removeTaskCompletionsForTask: repositoryMocks.removeTaskCompletionsForTask,
   removeSkipDay: repositoryMocks.removeSkipDay,
   removeTaskCompletion: repositoryMocks.removeTaskCompletion,
+  removeTaskWithCompletions: repositoryMocks.removeTaskWithCompletions,
 }));
 
 vi.mock('@/services/streak', () => ({
@@ -68,6 +70,7 @@ describe('family-board-service mutations', () => {
     repositoryMocks.removeTaskCompletionsForTask.mockReset();
     repositoryMocks.removeSkipDay.mockReset();
     repositoryMocks.removeTaskCompletion.mockReset();
+    repositoryMocks.removeTaskWithCompletions.mockReset();
     streakServiceMocks.getFamilyBoardStreaks.mockReset();
     streakServiceMocks.syncFamilyCurrentStreaks.mockReset();
   });
@@ -228,11 +231,7 @@ describe('family-board-service mutations', () => {
       taskId: task.id,
     });
 
-    expect(repositoryMocks.removeTaskCompletionsForTask).toHaveBeenCalledWith(
-      {},
-      task.id,
-    );
-    expect(repositoryMocks.removeTask).toHaveBeenCalledWith(
+    expect(repositoryMocks.removeTaskWithCompletions).toHaveBeenCalledWith(
       {},
       task.family_id,
       task.id,
@@ -254,8 +253,7 @@ describe('family-board-service mutations', () => {
       }),
     ).rejects.toThrow(FamilyBoardStateError);
 
-    expect(repositoryMocks.removeTaskCompletionsForTask).not.toHaveBeenCalled();
-    expect(repositoryMocks.removeTask).not.toHaveBeenCalled();
+    expect(repositoryMocks.removeTaskWithCompletions).not.toHaveBeenCalled();
     expect(streakServiceMocks.syncFamilyCurrentStreaks).not.toHaveBeenCalled();
   });
 });

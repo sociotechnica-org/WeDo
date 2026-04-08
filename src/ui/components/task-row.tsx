@@ -24,6 +24,7 @@ type GestureState = {
   startX: number;
   startY: number;
   originReveal: number;
+  direction: 'pending' | 'horizontal' | 'vertical';
 };
 
 function clamp(value: number, minimum: number, maximum: number) {
@@ -89,6 +90,7 @@ export function TaskRow({
       : canDelete && (isHovered || isFocusWithin || isTouchRevealOpen)
         ? deleteRevealWidth
         : 0;
+  const isDeleteVisible = deleteReveal > 0;
 
   function clearGesture() {
     gestureRef.current = null;
@@ -107,7 +109,9 @@ export function TaskRow({
       startX: event.clientX,
       startY: event.clientY,
       originReveal: isTouchRevealOpen ? deleteRevealWidth : 0,
+      direction: 'pending',
     };
+    dragRevealRef.current = gestureRef.current.originReveal;
 
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -121,8 +125,17 @@ export function TaskRow({
 
     const deltaX = event.clientX - gesture.startX;
     const deltaY = Math.abs(event.clientY - gesture.startY);
+    const absoluteDeltaX = Math.abs(deltaX);
 
-    if (Math.abs(deltaX) <= deltaY || Math.abs(deltaX) < 8) {
+    if (gesture.direction === 'pending') {
+      if (absoluteDeltaX < 8 && deltaY < 8) {
+        return;
+      }
+
+      gesture.direction = absoluteDeltaX > deltaY ? 'horizontal' : 'vertical';
+    }
+
+    if (gesture.direction !== 'horizontal') {
       return;
     }
 
@@ -258,21 +271,18 @@ export function TaskRow({
       ref={containerRef}
     >
       <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-        <button
-          aria-label={`Delete ${task.task.title}`}
-          className="inline-flex h-[calc(100%-1rem)] w-16 items-center justify-center rounded-[1.1rem] border border-[rgba(87,72,58,0.12)] bg-[linear-gradient(180deg,rgba(227,214,197,0.94),rgba(214,199,182,0.94))] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
-          data-testid="task-row-delete"
-          disabled={disabled}
-          onClick={handleDeleteClick}
-          style={{
-            opacity: deleteReveal > 0 ? 1 : 0,
-            transform:
-              deleteReveal > 0 ? 'translateX(0)' : 'translateX(0.6rem)',
-          }}
-          type="button"
-        >
-          <TrashIcon />
-        </button>
+        {isDeleteVisible ? (
+          <button
+            aria-label={`Delete ${task.task.title}`}
+            className="inline-flex h-[calc(100%-1rem)] w-16 items-center justify-center rounded-[1.1rem] border border-[rgba(87,72,58,0.12)] bg-[linear-gradient(180deg,rgba(227,214,197,0.94),rgba(214,199,182,0.94))] text-[var(--color-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.32)] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
+            data-testid="task-row-delete"
+            disabled={disabled}
+            onClick={handleDeleteClick}
+            type="button"
+          >
+            <TrashIcon />
+          </button>
+        ) : null}
       </div>
       <button
         aria-label={`Toggle ${task.task.title}`}

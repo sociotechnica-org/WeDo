@@ -5,10 +5,9 @@ import {
   getFamilyBoardSourceData,
   getFamilyPerson,
   getFamilyTask,
-  removeTask,
-  removeTaskCompletionsForTask,
   removeSkipDay,
   removeTaskCompletion,
+  removeTaskWithCompletions,
   type FamilyBoardSourceData,
 } from '@/db/family-board-repository';
 import { type DatabaseClient } from '@/db/database';
@@ -258,7 +257,6 @@ export async function deleteTask(
     );
   }
 
-  await removeTaskCompletionsForTask(client, input.taskId);
-  await removeTask(client, input.familyId, input.taskId);
+  await removeTaskWithCompletions(client, input.familyId, input.taskId);
   await syncFamilyCurrentStreaks(client, input.familyId, { force: true });
 }
