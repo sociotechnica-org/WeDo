@@ -56,6 +56,18 @@ const mondayTask = taskSchema.parse({
   created_at: '2026-04-07T08:00:00Z',
 });
 
+const sundayTask = taskSchema.parse({
+  id: 'task-sabbath',
+  family_id: familyId,
+  person_id: jess.id,
+  title: 'Sunday reset',
+  emoji: '🕊️',
+  schedule_rules: {
+    days: ['SU'],
+  },
+  created_at: '2026-04-07T08:00:00Z',
+});
+
 const completion = taskCompletionSchema.parse({
   id: 'completion-piano',
   task_id: tuesdayTask.id,
@@ -87,6 +99,7 @@ describe('family-board-service', () => {
   it('checks whether a task should appear on a requested date', () => {
     expect(isTaskScheduledForDate(tuesdayTask, date)).toBe(true);
     expect(isTaskScheduledForDate(mondayTask, date)).toBe(false);
+    expect(isTaskScheduledForDate(sundayTask, '2026-04-05')).toBe(false);
   });
 
   it('builds family board state with recurrence filtering, completions, and default streaks', () => {
@@ -118,6 +131,24 @@ describe('family-board-service', () => {
     expect(state.people[1]?.tasks[0]?.task.id).toBe(tuesdayTask.id);
     expect(state.people[1]?.tasks[0]?.completion).toEqual(completion);
     expect(state.people[1]?.streak).toEqual(streak);
+  });
+
+  it('builds a Sunday board with empty task lists for every person', () => {
+    const state = buildFamilyBoardState({
+      familyId,
+      date: '2026-04-05',
+      persons: [jess, micah],
+      tasks: [tuesdayTask, sundayTask],
+      completions: [],
+      skipDay: null,
+      streaks: [streak],
+    });
+
+    expect(state.day).toEqual({
+      date: '2026-04-05',
+      is_sunday: true,
+    });
+    expect(state.people.every((person) => person.tasks.length === 0)).toBe(true);
   });
 
   it('rejects board-state assembly for a family with no people', () => {
