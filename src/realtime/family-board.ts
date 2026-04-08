@@ -112,13 +112,15 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
 
       switch (payload.type) {
         case 'init': {
+          const runtime = getRuntimeConfig(this.env);
+          const resolvedDate = resolveBoardDate(runtime.timezone, payload.date);
           const state = await getFamilyBoardState(
             this.env.DB,
             familyId,
-            payload.date,
+            resolvedDate,
           );
 
-          attachSocketState(socket, familyId, payload.date);
+          attachSocketState(socket, familyId, resolvedDate);
           socket.send(toInitResponse(state));
           return;
         }

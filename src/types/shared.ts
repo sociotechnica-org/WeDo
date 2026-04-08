@@ -10,12 +10,12 @@ export const identifierSchema = z
   });
 
 function isSemanticallyValidIsoDate(value: string): boolean {
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1, 12));
+  const { year, month, day } = getIsoDateParts(value);
+  const date = createUtcDateFromIsoDateValue(value);
 
   return (
     date.getUTCFullYear() === year &&
-    date.getUTCMonth() === (month ?? 1) - 1 &&
+    date.getUTCMonth() === month - 1 &&
     date.getUTCDate() === day
   );
 }
@@ -50,10 +50,24 @@ export const defaultTimezone = 'America/New_York' as const;
 
 export const timezoneSchema = z.literal(defaultTimezone);
 
-function createUtcDateFromIsoDate(value: IsoDate): Date {
-  const [year, month, day] = value.split('-').map(Number);
+function getIsoDateParts(value: string) {
+  const [year = 0, month = 1, day = 1] = value.split('-').map(Number);
 
-  return new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1, 12));
+  return {
+    year,
+    month,
+    day,
+  };
+}
+
+function createUtcDateFromIsoDateValue(value: string): Date {
+  const { year, month, day } = getIsoDateParts(value);
+
+  return new Date(Date.UTC(year, month - 1, day, 12));
+}
+
+function createUtcDateFromIsoDate(value: IsoDate): Date {
+  return createUtcDateFromIsoDateValue(value);
 }
 
 export function addDaysToIsoDate(date: IsoDate, amount: number): IsoDate {

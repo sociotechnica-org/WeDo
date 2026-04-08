@@ -98,7 +98,13 @@ describe('FamilyBoard durable object', () => {
   it('responds to init with the current family board state', async () => {
     const ctx = new FakeDurableObjectState();
     const socket = new FakeWebSocket({ familyId: 'family-maple' });
-    const room = new FamilyBoard(ctx as never, { DB: {} } as never);
+    const room = new FamilyBoard(
+      ctx as never,
+      {
+        DB: {} as never,
+        TIMEZONE: 'America/New_York',
+      } as never,
+    );
 
     getFamilyBoardState.mockResolvedValue(exampleState);
 
@@ -123,6 +129,41 @@ describe('FamilyBoard durable object', () => {
     expect(JSON.parse(socket.sent[0] ?? '{}')).toEqual({
       type: 'init_response',
       state: exampleState,
+    });
+  });
+
+  it('clamps init requests beyond tomorrow to the resolved board date', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-08T14:15:00Z'));
+
+    const ctx = new FakeDurableObjectState();
+    const socket = new FakeWebSocket({ familyId: 'family-maple' });
+    const room = new FamilyBoard(
+      ctx as never,
+      {
+        DB: {} as never,
+        TIMEZONE: 'America/New_York',
+      } as never,
+    );
+
+    getFamilyBoardState.mockResolvedValue(exampleState);
+
+    await room.webSocketMessage(
+      socket as unknown as WebSocket,
+      JSON.stringify({
+        type: 'init',
+        date: '2026-04-15',
+      }),
+    );
+
+    expect(getFamilyBoardState).toHaveBeenCalledWith(
+      {},
+      'family-maple',
+      '2026-04-09',
+    );
+    expect(socket.attachment).toEqual({
+      familyId: 'family-maple',
+      date: '2026-04-09',
     });
   });
 
