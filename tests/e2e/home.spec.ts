@@ -38,13 +38,13 @@ test('renders the realtime household dashboard with seeded family data', async (
   await expect(page.getByRole('button', { name: 'Add task' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Jess' })).toBeVisible();
   await expect(page).toHaveURL(/people\/[^/?]+\?day=/);
-  const progressText = page.getByText('Tap any line to wash it blue.');
+  const progressText = page.getByText(/0 of 1 task marked for this day\./);
   await expect(progressText).toBeVisible();
 
   await page.getByRole('button', { name: 'Toggle Kitchen reset' }).click();
 
   await expect(
-    page.getByText('Everything on this page is resting in blue.'),
+    page.getByText(/1 of 1 task marked for this day\./),
   ).toBeVisible();
 
   await page.getByRole('link', { name: 'Back' }).click();
@@ -173,7 +173,7 @@ test('creates a task from natural language in the focused single-list view', asy
   ).toBeVisible();
   await expect(page.getByText('Practice piano')).toBeVisible();
   await expect(
-    page.getByText('Tap any line to wash it blue.'),
+    page.getByText(/0 of 2 tasks marked for this day\./),
   ).toBeVisible();
 });
 

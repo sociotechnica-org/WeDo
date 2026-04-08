@@ -32,6 +32,7 @@ This PR does not include:
 - `Standard - Visual Language` requires handwritten / letterpress typography, watercolor completion treatment, sketched controls, warm off-white paper, and avoidance of default OS control styling across the app.
 - `Experience Goal - Ambient Calm` makes two constraints testable for this slice: the board should feel like household art, and the dashboard should stay legible from across the room without alarm colors or dense chrome.
 - The ticket and prototype wireframes point toward a lighter, more spacious composition than the current card-heavy layout, so the work should simplify and unify existing surfaces rather than layering more decorative widgets on top.
+- PR review on `#31` identified a narrow follow-up seam inside this same slice: disabled stationery controls need stricter disabled-state styling, the focused single-list view needs visible progress counts restored, and per-person palettes need distinct watercolor tints instead of a shared wash.
 - The repo expects a Bridget briefing, but there is no Bridget tool and no checked-in `CONTEXT_BRIEFING.md` in this workspace. For this slice, the Alexandria cards, checked-in FEAT-014 ticket doc, prototype wireframes in `docs/alexandria/sources/`, and repo code are the available context briefing source.
 
 ## Affected Layers And Boundaries
@@ -65,7 +66,8 @@ Deliberately deferred:
 5. Update `DashboardRoute`, `SingleListRoute`, and `SettingsRoute` headers and section layouts to reduce generic card chrome, unify the board framing, and keep utility screens visually consistent with the main experience.
 6. Update board-shell loading / error / not-found states so no visible screen falls back to generic app-shell styling.
 7. Add or update unit and end-to-end assertions that cover the main visible contract changes without overfitting to incidental class names.
-8. Verify the result in local Chrome through Playwright at an iPad-like landscape viewport, then run required checks and review the diff for any remaining default-control drift.
+8. Address actionable PR feedback within the same UI seam by tightening disabled stationery CSS behavior, restoring visible focused-list counts, and reintroducing distinct per-person wash/mist values.
+9. Verify the result in local Chrome through Playwright at an iPad-like landscape viewport, then run required checks and review the diff for any remaining default-control drift.
 
 ## Tests And Acceptance Scenarios
 

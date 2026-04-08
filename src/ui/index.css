@@ -215,14 +215,14 @@ body::after {
   letter-spacing: -0.03em;
 }
 
-.stationery-link:hover,
-.stationery-button:hover {
+.stationery-link:hover:not(:disabled):not([aria-disabled='true']),
+.stationery-button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 16px 34px rgba(94, 77, 60, 0.1);
 }
 
-.stationery-link:focus-visible,
-.stationery-button:focus-visible {
+.stationery-link:focus-visible:not(:disabled):not([aria-disabled='true']),
+.stationery-button:focus-visible:not(:disabled) {
   outline: none;
   box-shadow:
     0 0 0 3px rgba(93, 151, 206, 0.14),
@@ -230,14 +230,15 @@ body::after {
 }
 
 .stationery-button:disabled,
+.stationery-link:disabled,
 .stationery-link[aria-disabled='true'] {
   cursor: not-allowed;
-  opacity: 0.55;
   transform: none;
   box-shadow: none;
 }
 
-.stationery-button--muted {
+.stationery-button--muted,
+.stationery-link--muted {
   background: linear-gradient(
     180deg,
     rgba(250, 244, 236, 0.9),

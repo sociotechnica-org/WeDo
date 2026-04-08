@@ -407,7 +407,7 @@ export function SettingsRoute() {
 
           <div className="mt-8 flex flex-wrap justify-end gap-3">
             <Link
-              className="stationery-link stationery-button--muted px-5 py-3 text-[1.05rem]"
+              className="stationery-link stationery-link--muted px-5 py-3 text-[1.05rem]"
               to={dashboardHref}
             >
               Cancel

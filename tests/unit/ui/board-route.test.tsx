@@ -116,6 +116,7 @@ describe('Board routes', () => {
     expect(markup).toContain('Add task');
     expect(markup).toContain('Toggle Kitchen reset');
     expect(markup).not.toContain('Delete Kitchen reset');
+    expect(markup).toContain('0 of 1 task marked for this day.');
     expect(markup).toContain('Tap any line to wash it blue.');
     expect(markup).toContain('data-testid="single-list-task-list"');
   });

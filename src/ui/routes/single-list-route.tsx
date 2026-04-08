@@ -8,6 +8,21 @@ import { TaskRow } from '@/ui/components/task-row';
 import { buildDayHref } from '@/ui/lib/day-navigation';
 import { useReadyBoard } from '@/ui/routes/use-ready-board';
 
+function getProgressMessage(completedCount: number, totalCount: number) {
+  if (totalCount === 0) {
+    return 'No tasks resting on this page today.';
+  }
+
+  const taskLabel = totalCount === 1 ? 'task' : 'tasks';
+  const countMessage = `${completedCount} of ${totalCount} ${taskLabel} marked for this day.`;
+
+  if (completedCount === totalCount) {
+    return `${countMessage} Everything on this page is resting in blue.`;
+  }
+
+  return `${countMessage} Tap any line to wash it blue.`;
+}
+
 export function SingleListRoute() {
   const { personId } = useParams();
   const {
@@ -162,11 +177,7 @@ export function SingleListRoute() {
               {personState.person.name}
             </h2>
             <p className="hand-link mt-4 text-[1.3rem] leading-8 text-[var(--color-ink-soft)]">
-              {personState.tasks.length === 0
-                ? 'No tasks resting on this page today.'
-                : completedCount === personState.tasks.length
-                  ? 'Everything on this page is resting in blue.'
-                  : 'Tap any line to wash it blue.'}
+              {getProgressMessage(completedCount, personState.tasks.length)}
             </p>
           </div>
 
