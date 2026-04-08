@@ -1,17 +1,15 @@
-import { and, eq, inArray, lte } from 'drizzle-orm';
+import { and, eq, inArray, lte, sql } from 'drizzle-orm';
 import {
   isoDateSchema,
   personSchema,
   streakSchema,
   taskCompletionSchema,
-  taskSchema,
   type IsoDate,
   type Person,
   type Streak,
   type Task,
   type TaskCompletion,
 } from '@/types';
-import { scheduleRulesSchema } from '@/types/shared';
 import { getDatabase, type DatabaseClient } from './database';
 import {
   personsTable,
@@ -20,6 +18,7 @@ import {
   taskCompletionsTable,
   tasksTable,
 } from './schema';
+import { toTask } from './task-row';
 
 export type PersistedStreak = Streak & {
   evaluated_through_date: IsoDate | null;
@@ -34,21 +33,6 @@ export type FamilyStreakCalculationSource = {
 };
 
 type PersistedStreakMutation = PersistedStreak;
-
-function parseScheduleRules(value: unknown) {
-  if (typeof value === 'string') {
-    return scheduleRulesSchema.parse(JSON.parse(value));
-  }
-
-  return scheduleRulesSchema.parse(value);
-}
-
-function toTask(row: typeof tasksTable.$inferSelect): Task {
-  return taskSchema.parse({
-    ...row,
-    schedule_rules: parseScheduleRules(row.schedule_rules),
-  });
-}
 
 function toPersistedStreak(
   row: typeof streaksTable.$inferSelect,
@@ -124,7 +108,7 @@ export async function getFamilyStreakCalculationSource(
     persons,
     tasks,
     completions: completionRows.map((row) => taskCompletionSchema.parse(row)),
-    skipDayDates: skipDayRows.map((row) => row.date as IsoDate),
+    skipDayDates: skipDayRows.map((row) => isoDateSchema.parse(row.date)),
   };
 }
 
@@ -165,18 +149,16 @@ export async function savePersistedStreaks(
 
   const db = getDatabase(client);
 
-  for (const streak of streaks) {
-    await db
-      .insert(streaksTable)
-      .values(streak)
-      .onConflictDoUpdate({
-        target: streaksTable.person_id,
-        set: {
-          current_count: streak.current_count,
-          best_count: streak.best_count,
-          last_qualifying_date: streak.last_qualifying_date,
-          evaluated_through_date: streak.evaluated_through_date,
-        },
-      });
-  }
+  await db
+    .insert(streaksTable)
+    .values([...streaks])
+    .onConflictDoUpdate({
+      target: streaksTable.person_id,
+      set: {
+        current_count: sql`excluded.current_count`,
+        best_count: sql`excluded.best_count`,
+        last_qualifying_date: sql`excluded.last_qualifying_date`,
+        evaluated_through_date: sql`excluded.evaluated_through_date`,
+      },
+    });
 }

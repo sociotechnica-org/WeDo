@@ -80,6 +80,7 @@ describe('family-board-service mutations', () => {
     expect(streakServiceMocks.syncFamilyCurrentStreaks).toHaveBeenCalledWith(
       {},
       task.family_id,
+      { force: true },
     );
   });
 
@@ -101,6 +102,7 @@ describe('family-board-service mutations', () => {
     expect(streakServiceMocks.syncFamilyCurrentStreaks).toHaveBeenCalledWith(
       {},
       task.family_id,
+      { force: true },
     );
   });
 
@@ -118,14 +120,6 @@ describe('family-board-service mutations', () => {
       tasks: [task],
       completions: [],
       skipDay: null,
-      streaks: [
-        {
-          person_id: 'person-jess',
-          current_count: 0,
-          best_count: 0,
-          last_qualifying_date: null,
-        },
-      ],
     });
     streakServiceMocks.getFamilyBoardStreaks.mockResolvedValue([
       {

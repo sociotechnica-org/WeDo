@@ -33,6 +33,7 @@ import {
 type BuildFamilyBoardStateInput = FamilyBoardSourceData & {
   familyId: string;
   date: IsoDate;
+  streaks: Streak[];
 };
 
 type ToggleTaskCompletionInput = {
@@ -209,5 +210,5 @@ export async function toggleTaskCompletion(
     await removeTaskCompletion(client, input.taskId, input.date);
   }
 
-  await syncFamilyCurrentStreaks(client, input.familyId);
+  await syncFamilyCurrentStreaks(client, input.familyId, { force: true });
 }

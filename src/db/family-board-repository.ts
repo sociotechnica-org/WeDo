@@ -2,7 +2,6 @@ import { and, eq, inArray } from 'drizzle-orm';
 import {
   personSchema,
   skipDaySchema,
-  streakSchema,
   taskCompletionSchema,
   taskSchema,
   type IsoDate,
@@ -10,26 +9,23 @@ import {
   type Person,
   type ScheduleRules,
   type SkipDay,
-  type Streak,
   type Task,
   type TaskCompletion,
 } from '@/types';
-import { scheduleRulesSchema } from '@/types/shared';
 import { getDatabase, type DatabaseClient } from './database';
 import {
   personsTable,
   skipDaysTable,
-  streaksTable,
   taskCompletionsTable,
   tasksTable,
 } from './schema';
+import { toTask } from './task-row';
 
 export type FamilyBoardSourceData = {
   persons: Person[];
   tasks: Task[];
   completions: TaskCompletion[];
   skipDay: SkipDay | null;
-  streaks: Streak[];
 };
 
 type TaskCompletionMutation = {
@@ -46,21 +42,6 @@ type TaskCreationMutation = {
   scheduleRules: ScheduleRules;
   createdAt: IsoTimestamp;
 };
-
-function parseScheduleRules(value: unknown): ScheduleRules {
-  if (typeof value === 'string') {
-    return scheduleRulesSchema.parse(JSON.parse(value));
-  }
-
-  return scheduleRulesSchema.parse(value);
-}
-
-function toTask(row: typeof tasksTable.$inferSelect): Task {
-  return taskSchema.parse({
-    ...row,
-    schedule_rules: parseScheduleRules(row.schedule_rules),
-  });
-}
 
 export async function getFamilyBoardSourceData(
   client: DatabaseClient,
@@ -85,7 +66,6 @@ export async function getFamilyBoardSourceData(
 
   const tasks = taskRows.map(toTask);
   const taskIds = tasks.map((task) => task.id);
-  const personIds = persons.map((person) => person.id);
 
   const completionRows =
     taskIds.length === 0
@@ -112,25 +92,11 @@ export async function getFamilyBoardSourceData(
     )
     .limit(1);
 
-  const streakRows =
-    personIds.length === 0
-      ? []
-      : await db
-          .select({
-            person_id: streaksTable.person_id,
-            current_count: streaksTable.current_count,
-            best_count: streaksTable.best_count,
-            last_qualifying_date: streaksTable.last_qualifying_date,
-          })
-          .from(streaksTable)
-          .where(inArray(streaksTable.person_id, personIds));
-
   return {
     persons,
     tasks,
     completions,
     skipDay: skipDayRow ? skipDaySchema.parse(skipDayRow) : null,
-    streaks: streakRows.map((row) => streakSchema.parse(row)),
   };
 }
 

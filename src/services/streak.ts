@@ -25,6 +25,10 @@ type StreakComputationOptions = {
   todayDate?: IsoDate;
 };
 
+type SyncFamilyCurrentStreaksOptions = StreakComputationOptions & {
+  force?: boolean;
+};
+
 type StreakDayOutcome = 'hold' | 'increment' | 'reset';
 
 const defaultComputationOptions = (): Required<StreakComputationOptions> => ({
@@ -210,15 +214,16 @@ export function calculateFamilyStreaks(
 export async function syncFamilyCurrentStreaks(
   client: DatabaseClient,
   familyId: string,
-  options: StreakComputationOptions = {},
+  options: SyncFamilyCurrentStreaksOptions = {},
 ): Promise<void> {
-  const { todayDate } = {
+  const { force = false, todayDate } = {
     ...defaultComputationOptions(),
     ...options,
   };
   const persisted = await getFamilyPersistedStreaks(client, familyId);
 
   if (
+    !force &&
     persisted.length > 0 &&
     persisted.every((streak) => streak.evaluated_through_date === todayDate)
   ) {
