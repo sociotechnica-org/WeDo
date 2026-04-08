@@ -4,6 +4,7 @@ import type { WorkerBindings } from '@/config/runtime';
 import {
   clientWebSocketMessageSchema,
   initResponseSchema,
+  isoDateSchema,
   stateUpdateMessageSchema,
 } from '@/types';
 import {
@@ -15,6 +16,7 @@ import {
 const webSocketAttachmentSchema = z
   .object({
     familyId: z.string().min(1),
+    date: isoDateSchema.optional(),
   })
   .strict();
 
@@ -38,10 +40,24 @@ function getFamilyIdFromRequest(request: Request): string {
 }
 
 function getAttachedFamilyId(socket: WebSocket): string {
-  return webSocketAttachmentSchema.parse(socket.deserializeAttachment()).familyId;
+  return webSocketAttachmentSchema.parse(socket.deserializeAttachment())
+    .familyId;
 }
 
-function toInitResponse(state: Awaited<ReturnType<typeof getFamilyBoardState>>): string {
+function getAttachedDate(socket: WebSocket) {
+  return webSocketAttachmentSchema.parse(socket.deserializeAttachment()).date;
+}
+
+function attachSocketState(socket: WebSocket, familyId: string, date?: string) {
+  socket.serializeAttachment({
+    familyId,
+    date,
+  });
+}
+
+function toInitResponse(
+  state: Awaited<ReturnType<typeof getFamilyBoardState>>,
+): string {
   return JSON.stringify(
     initResponseSchema.parse({
       type: 'init_response',
@@ -50,7 +66,9 @@ function toInitResponse(state: Awaited<ReturnType<typeof getFamilyBoardState>>):
   );
 }
 
-function toStateUpdate(state: Awaited<ReturnType<typeof getFamilyBoardState>>): string {
+function toStateUpdate(
+  state: Awaited<ReturnType<typeof getFamilyBoardState>>,
+): string {
   return JSON.stringify(
     stateUpdateMessageSchema.parse({
       type: 'state_update',
@@ -76,7 +94,7 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
       throw new FamilyBoardStateError('Unable to create websocket pair.');
     }
 
-    server.serializeAttachment({ familyId });
+    attachSocketState(server, familyId);
     this.ctx.acceptWebSocket(server);
 
     return new Response(null, {
@@ -97,8 +115,13 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
 
       switch (payload.type) {
         case 'init': {
-          const state = await getFamilyBoardState(this.env.DB, familyId, payload.date);
+          const state = await getFamilyBoardState(
+            this.env.DB,
+            familyId,
+            payload.date,
+          );
 
+          attachSocketState(socket, familyId, payload.date);
           socket.send(toInitResponse(state));
           return;
         }
@@ -110,10 +133,22 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
             completed: payload.completed,
           });
 
-          const state = await getFamilyBoardState(this.env.DB, familyId, payload.date);
+          const state = await getFamilyBoardState(
+            this.env.DB,
+            familyId,
+            payload.date,
+          );
           const update = toStateUpdate(state);
 
           for (const connection of this.ctx.getWebSockets()) {
+            if (getAttachedFamilyId(connection) !== familyId) {
+              continue;
+            }
+
+            if (getAttachedDate(connection) !== payload.date) {
+              continue;
+            }
+
             connection.send(update);
           }
         }

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
+import { DayNavigation } from '@/ui/components/day-navigation';
 import { PersonColumn } from '@/ui/components/person-column';
 import { RealtimeStatusBanner } from '@/ui/components/realtime-status-banner';
-import { formatDayLabel } from '@/ui/lib/format-day-label';
+import { buildDayHref } from '@/ui/lib/day-navigation';
 import { useReadyBoard } from '@/ui/routes/use-ready-board';
 
 export function DashboardRoute() {
-  const { board, householdName, realtime } = useReadyBoard();
+  const { board, householdName, realtime, todayDate } = useReadyBoard();
 
   return (
     <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
@@ -24,14 +25,7 @@ export function DashboardRoute() {
               </p>
             </div>
 
-            <div className="justify-self-start rounded-[1.5rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(255,252,247,0.78)] px-4 py-3 text-left shadow-[0_10px_24px_rgba(82,65,48,0.05)] md:justify-self-center md:text-center">
-              <p className="scribe-label text-[0.62rem] uppercase tracking-[0.34em] text-[var(--color-ink-soft)]">
-                Day
-              </p>
-              <p className="mt-1 text-xl text-[var(--color-ink)] lg:text-2xl">
-                {formatDayLabel(board.day.date)}
-              </p>
-            </div>
+            <DayNavigation currentDate={board.day.date} todayDate={todayDate} />
 
             <div className="justify-self-start md:justify-self-end">
               <button
@@ -56,7 +50,11 @@ export function DashboardRoute() {
               className="block rounded-[1.9rem] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(87,72,58,0.24)]"
               data-testid="person-column-link"
               key={personState.person.id}
-              to={`/people/${personState.person.id}`}
+              to={buildDayHref(
+                `/people/${personState.person.id}`,
+                board.day.date,
+                todayDate,
+              )}
             >
               <PersonColumn paletteIndex={index} personState={personState} />
             </Link>

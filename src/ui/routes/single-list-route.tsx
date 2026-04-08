@@ -1,19 +1,19 @@
 import { Link, useParams } from 'react-router-dom';
 import { CompletionRing } from '@/ui/components/completion-ring';
+import { DayNavigation } from '@/ui/components/day-navigation';
 import { getPersonPalette } from '@/ui/components/person-palette';
 import { RealtimeStatusBanner } from '@/ui/components/realtime-status-banner';
 import { TaskRow } from '@/ui/components/task-row';
-import { formatDayLabel } from '@/ui/lib/format-day-label';
+import { buildDayHref } from '@/ui/lib/day-navigation';
 import { useReadyBoard } from '@/ui/routes/use-ready-board';
 
 export function SingleListRoute() {
   const { personId } = useParams();
-  const { board, realtime, toggleTask } = useReadyBoard();
+  const { board, realtime, todayDate, toggleTask } = useReadyBoard();
   const personIndex = board.people.findIndex(
     (personState) => personState.person.id === personId,
   );
-  const personState =
-    personIndex >= 0 ? board.people[personIndex] : undefined;
+  const personState = personIndex >= 0 ? board.people[personIndex] : undefined;
 
   if (!personState) {
     return (
@@ -28,7 +28,7 @@ export function SingleListRoute() {
           </p>
           <Link
             className="mt-6 inline-flex rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.78)] px-4 py-2 text-[0.98rem] text-[var(--color-ink)] shadow-[0_10px_24px_rgba(82,65,48,0.05)]"
-            to="/"
+            to={buildDayHref('/', board.day.date, todayDate)}
           >
             Back to dashboard
           </Link>
@@ -56,20 +56,13 @@ export function SingleListRoute() {
               </h1>
               <Link
                 className="mt-4 inline-flex rounded-[1.2rem] border border-[rgba(87,72,58,0.10)] bg-[rgba(255,252,247,0.78)] px-4 py-2 text-[0.98rem] text-[var(--color-ink)] shadow-[0_10px_24px_rgba(82,65,48,0.05)]"
-                to="/"
+                to={buildDayHref('/', board.day.date, todayDate)}
               >
                 Back
               </Link>
             </div>
 
-            <div className="justify-self-start rounded-[1.5rem] border border-[rgba(87,72,58,0.08)] bg-[rgba(255,252,247,0.78)] px-4 py-3 text-left shadow-[0_10px_24px_rgba(82,65,48,0.05)] md:justify-self-center md:text-center">
-              <p className="scribe-label text-[0.62rem] uppercase tracking-[0.34em] text-[var(--color-ink-soft)]">
-                Day
-              </p>
-              <p className="mt-1 text-xl text-[var(--color-ink)] lg:text-2xl">
-                {formatDayLabel(board.day.date)}
-              </p>
-            </div>
+            <DayNavigation currentDate={board.day.date} todayDate={todayDate} />
 
             <div className="justify-self-start md:justify-self-end">
               <button
@@ -111,7 +104,8 @@ export function SingleListRoute() {
               {personState.person.name}
             </h2>
             <p className="mt-3 text-[1.02rem] leading-6 text-[var(--color-ink-soft)]">
-              {completedCount} of {personState.tasks.length} tasks done today.
+              {completedCount} of {personState.tasks.length} tasks marked for
+              this day.
             </p>
           </div>
 

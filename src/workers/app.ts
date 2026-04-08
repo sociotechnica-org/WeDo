@@ -1,7 +1,14 @@
 import { Hono } from 'hono';
-import { BoardBootstrapError, getBoardResponse } from '@/services/board-service';
+import {
+  BoardBootstrapError,
+  getBoardResponse,
+} from '@/services/board-service';
 import type { WorkerBindings } from '@/config/runtime';
-import { getFamilyRoomKey, healthResponseSchema } from '@/types';
+import {
+  boardRequestQuerySchema,
+  getFamilyRoomKey,
+  healthResponseSchema,
+} from '@/types';
 
 type AppEnv = {
   Bindings: WorkerBindings;
@@ -28,7 +35,15 @@ export function createApp() {
   });
 
   app.get('/api/board', async (context) => {
-    return context.json(await getBoardResponse(context.env));
+    const query = boardRequestQuerySchema.parse({
+      day: context.req.query('day'),
+    });
+
+    return context.json(
+      await getBoardResponse(context.env, {
+        requestedDate: query.day,
+      }),
+    );
   });
 
   app.get('/api/realtime/:familyId', async (context) => {

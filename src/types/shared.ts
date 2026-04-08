@@ -20,15 +20,7 @@ export const isoTimestampSchema = z
     'Expected an ISO timestamp.',
   );
 
-export const dayCodeSchema = z.enum([
-  'MO',
-  'TU',
-  'WE',
-  'TH',
-  'FR',
-  'SA',
-  'SU',
-]);
+export const dayCodeSchema = z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']);
 
 export const scheduleRulesSchema = z
   .object({
@@ -43,6 +35,28 @@ export const scheduleRulesSchema = z
 export const defaultTimezone = 'America/New_York' as const;
 
 export const timezoneSchema = z.literal(defaultTimezone);
+
+function createUtcDateFromIsoDate(value: IsoDate): Date {
+  const [year, month, day] = value.split('-').map(Number);
+
+  return new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1, 12));
+}
+
+export function addDaysToIsoDate(date: IsoDate, amount: number): IsoDate {
+  const nextDate = createUtcDateFromIsoDate(date);
+
+  nextDate.setUTCDate(nextDate.getUTCDate() + amount);
+
+  const year = nextDate.getUTCFullYear();
+  const month = `${nextDate.getUTCMonth() + 1}`.padStart(2, '0');
+  const day = `${nextDate.getUTCDate()}`.padStart(2, '0');
+
+  return isoDateSchema.parse(`${year}-${month}-${day}`);
+}
+
+export function compareIsoDates(left: IsoDate, right: IsoDate): number {
+  return left.localeCompare(right);
+}
 
 export type Identifier = z.infer<typeof identifierSchema>;
 export type IsoDate = z.infer<typeof isoDateSchema>;

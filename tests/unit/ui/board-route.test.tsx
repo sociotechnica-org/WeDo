@@ -15,6 +15,7 @@ import { SingleListRoute } from '@/ui/routes/single-list-route';
 const readyBoardState = {
   status: 'ready' as const,
   householdName: 'River House',
+  todayDate: '2026-04-08',
   realtime: {
     status: 'degraded' as const,
     message: 'The board is still visible, but live updates are paused.',
@@ -23,7 +24,7 @@ const readyBoardState = {
   board: {
     family_id: 'family-maple',
     day: {
-      date: '2026-04-08',
+      date: '2026-04-07',
       is_sunday: false,
     },
     people: [
@@ -80,7 +81,7 @@ describe('Board routes', () => {
   it('surfaces degraded realtime status on the dashboard without hiding person links', () => {
     useFamilyBoardMock.mockReturnValue(readyBoardState);
 
-    const markup = renderRoute('/');
+    const markup = renderRoute('/?day=2026-04-07');
 
     expect(markup).toContain('Live updates paused');
     expect(markup).toContain(
@@ -88,18 +89,22 @@ describe('Board routes', () => {
     );
     expect(markup).toContain('Jess');
     expect(markup).toContain('Kitchen reset');
-    expect(markup).toContain('href="/people/person-jess"');
+    expect(useFamilyBoardMock).toHaveBeenCalledWith('2026-04-07');
+    expect(markup).toContain('href="/people/person-jess?day=2026-04-07"');
+    expect(markup).toContain('aria-label="Go to previous day"');
+    expect(markup).toContain('href="/?day=2026-04-06"');
+    expect(markup).toContain('href="/"');
   });
 
   it('renders the focused single-list route with back navigation and add-task affordance', () => {
     useFamilyBoardMock.mockReturnValue(readyBoardState);
 
-    const markup = renderRoute('/people/person-jess');
+    const markup = renderRoute('/people/person-jess?day=2026-04-07');
 
     expect(markup).toContain('Focused list');
-    expect(markup).toContain('Back');
+    expect(markup).toContain('href="/?day=2026-04-07"');
     expect(markup).toContain('Add task');
     expect(markup).toContain('Toggle Kitchen reset');
-    expect(markup).toContain('0 of 1 tasks done today.');
+    expect(markup).toContain('0 of 1 tasks marked for this day.');
   });
 });
