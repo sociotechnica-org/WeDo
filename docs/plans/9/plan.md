@@ -2,19 +2,19 @@
 
 ## Goal
 
-Implement FEAT-009 so Single List View can create recurring tasks from plain-language text, the Worker parses that text through the Anthropic API into structured task data, the family Durable Object persists the new task to D1 and broadcasts updated board state, and the UI reflects the new task without exposing a recurrence picker.
+Land FEAT-009 in a reviewable, production-safe state by keeping the existing natural-language task-entry seam intact while addressing the current PR rework feedback around Anthropic request shape, Durable Object post-write behavior, Worker error exposure, and UI state reconciliation.
 
 ## Scope
 
 This PR includes:
 
-- a checked-in implementation plan for issue `#9`
-- shared request/response and parser-output contracts for natural-language task entry
-- a Worker-side Anthropic parser service that uses a stateless `tool_use` call and validates the result with Zod
-- a family-scoped mutation path that persists created tasks to D1 through the Durable Object and broadcasts updated board state to connected clients
-- Single List UI for opening a text field, submitting natural-language input, and surfacing pending or failure states in the existing watercolor / stationery style
-- unit coverage for parser and mutation contracts, worker route behavior, realtime broadcast behavior, and UI flow
-- e2e coverage for opening the add-task form and creating a task through the visible product flow
+- the existing FEAT-009 end-to-end natural-language task entry slice already on the branch
+- a checked-in plan update that reflects the rework-required feedback for this PR
+- Anthropic parser cleanup so the Worker request matches Anthropic `tool_use` expectations
+- Durable Object task-creation hardening so a successful D1 write is not reported back to the caller as a failed create because a later broadcast step had trouble
+- UI reconciliation fixes so HTTP task creation does not reset degraded realtime state and does not overwrite a newer board view after navigation
+- Worker-route hardening so unexpected server failures return controlled user-facing responses instead of internal error text
+- regression tests covering the above fixes in parser, worker, realtime, and UI-state helpers
 
 ## Non-Goals
 
@@ -26,14 +26,22 @@ This PR does not include:
 - editing or deleting created tasks beyond the existing or future dedicated issue slices
 - a model/provider choice other than Anthropic Sonnet 4.6 already defined by ADR 004
 - auth, household selection, or multi-family management work
+- broad refactors of the family-board hook, realtime protocol, or worker routing structure beyond what is required to close the review feedback safely
 
 ## Current Context And Gaps
 
 - The current Single List View already renders a disabled `Add task` button placeholder in the correct location, so the UI seam exists but has no task-entry behavior.
 - The repo already has family-scoped realtime task toggles flowing through the Durable Object, which is the correct mutation path to preserve for task creation per ADR 002.
-- There is no current Worker task-creation route, no Anthropic parser client, no task-creation repository method, and no realtime protocol for task creation.
+- The current branch already contains the Worker task-creation route, Anthropic parser client, Durable Object mutation path, and Single List task-entry UI for FEAT-009.
+- The remaining work is rework, not greenfield implementation: several review comments identify correctness and hardening issues in the already-landed slice.
 - The release/ticket docs expect a Bridget context briefing, but there is no Bridget tool or checked-in `CONTEXT_BRIEFING.md` in this workspace. For this slice, the context briefing source is the Alexandria library cards, ADRs, founder notes already in-repo, and the sanitized GitHub issue summary.
 - The system card mentions a possible clarification request for ambiguous input, but the issue acceptance criteria only requires a reasonable best-guess parse instead of an error. This slice will implement best-guess creation, not a clarification loop.
+- Current validated rework items:
+  - `src/services/nl-parser.ts` sends `strict: true` inside the Anthropic tool definition even though that field is not part of Anthropic's Messages API tool schema.
+  - `src/realtime/family-board.ts` can currently convert a successful D1 task write into an HTTP error if a later state-refresh or broadcast step throws.
+  - `src/realtime/family-board.ts` also re-fetches board state for the requester's viewed date even after already fetching it for the HTTP response.
+  - `src/workers/routes/tasks.ts` returns raw unexpected error text to the client.
+  - `src/ui/hooks/use-family-board.ts` rebuilds ready state from the HTTP create response in a way that resets degraded realtime status to `live`, and the async callback can still apply stale results after the viewed day changes.
 
 ## Affected Layers And Boundaries
 
@@ -54,7 +62,7 @@ Boundary rules preserved:
 
 ## Slice Strategy
 
-This PR lands one reviewable seam: "create a recurring task from one plain-language input in Single List View and propagate it through the existing board/realtime architecture." That seam is reviewable because it delivers the full FEAT-009 user behavior without mixing in clarification-chat UX, schedule editing, or unrelated board redesign.
+This PR still lands one reviewable seam: "create a recurring task from one plain-language input in Single List View and propagate it through the existing board/realtime architecture," but the active work is now the narrow rework pass needed to make that seam safe to merge. That is reviewable on its own because it tightens behavior without changing the user-facing product contract or widening scope into follow-up features.
 
 Deliberately deferred:
 
@@ -103,16 +111,14 @@ Failure and edge cases to guard:
 
 ## Implementation Steps
 
-1. Add `docs/plans/9/plan.md` and keep implementation aligned with this FEAT-009 seam.
-2. Add shared task-entry schemas for the UI request, parser result, DO mutation payload, and Worker response envelopes.
-3. Extend runtime bindings and Worker config to include the Anthropic API key while keeping it server-only.
-4. Add repository support for inserting a task row and validating the family/person association needed for creation.
-5. Add a service that calls the Anthropic API with the `tool_use` schema from ADR 004/005, validates the structured output, and returns parsed task data.
-6. Add Worker task-creation routing that accepts raw input, invokes the parser service, and forwards the structured mutation to the family-scoped Durable Object.
-7. Extend the family Durable Object to handle task-creation mutation requests, persist the task to D1, and broadcast refreshed board state to sockets grouped by viewed day.
-8. Extend the family-board UI state/hooks so Single List can submit task text, show pending/error states, and reconcile the returned or broadcast board update.
-9. Add unit and e2e coverage for contracts, route behavior, realtime broadcasting, and the visible add-task flow.
-10. Run required checks, verify visually in local Chrome via Playwright, review the diff, and update or open the PR against `main`.
+1. Update `docs/plans/9/plan.md` so the plan matches the current rework-required slice instead of the earlier greenfield implementation framing.
+2. Remove the non-Anthropic `strict` tool field from the parser request and update parser tests accordingly.
+3. Harden the family Durable Object task-creation path so the response state for the requester's viewed day is computed once, reused for broadcast when possible, and not converted into an HTTP error by best-effort broadcast failures after the D1 write.
+4. Harden the Worker task route so unexpected failures return controlled generic text, while preserving explicit validation behavior for bad client requests.
+5. Adjust the family-board UI reconciliation path so task creation applies only to the still-current board view and preserves the latest realtime degradation state rather than resetting to `live`.
+6. Remove any now-unused hook dependencies introduced by the above reconciliation changes.
+7. Add regression coverage for parser payload shape, DO post-write broadcast resilience, Worker error sanitization, and the UI-state helper behavior used by the hook.
+8. Run required checks, verify the visible task-entry flow in local Chrome via Playwright, review the diff, and leave the branch ready for PR update.
 
 ## Tests And Acceptance Scenarios
 
@@ -138,6 +144,10 @@ Acceptance scenarios:
 - clients viewing the affected family board receive updated board state after creation
 - if the created task is scheduled for the currently viewed day, it appears immediately in Single List and on the dashboard
 - ambiguous but parseable input results in a best-guess task instead of a hard product error
+- if the board is already in degraded realtime mode, a successful HTTP task create preserves that degraded status instead of silently marking the session `live`
+- if the user changes to another viewed day while a create request is still in flight, the old response does not overwrite the newer board view
+- if the D1 write succeeds but a later broadcast refresh fails for another viewed date, the create caller still receives a success response for the created task
+- unexpected Worker failures return a generic task-creation failure message rather than raw internal error text
 
 ## Risks And Open Questions
 

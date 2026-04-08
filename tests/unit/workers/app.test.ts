@@ -203,4 +203,37 @@ describe('workers app realtime route', () => {
       },
     });
   });
+
+  it('returns a controlled 503 when task creation hits an unexpected server error', async () => {
+    taskRouteMocks.parseNaturalLanguageTask.mockRejectedValue(
+      new Error('anthropic stack trace'),
+    );
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/tasks', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          person_id: 'person-456',
+          raw_input: 'practice piano Monday Tuesday Thursday Friday',
+          viewed_date: '2026-04-08',
+        }),
+      }),
+      {
+        ANTHROPIC_API_KEY: 'test-api-key',
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn(),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.text()).resolves.toBe(
+      'Task creation is temporarily unavailable.',
+    );
+  });
 });

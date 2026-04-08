@@ -10,12 +10,14 @@ import {
   type TaskToggledMessage,
 } from '@/types';
 import {
-  createReadyFamilyBoardState,
   findTaskCompletionStatus,
   getRealtimeCloseMessage,
   getRealtimeErrorMessage,
+  isReadyBoardViewFor,
   type ReadyFamilyBoardState,
   type FamilyBoardViewState,
+  withBoardSnapshot,
+  createReadyFamilyBoardState,
   withOptimisticTaskToggle,
   withRealtimeIssue,
 } from './family-board-state';
@@ -145,9 +147,11 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
         throw new Error('The board is not ready for task entry.');
       }
 
-      const response = await fetch(
-        buildCreateTaskUrl(currentState.board.family_id),
-        {
+      const requestFamilyId = currentState.board.family_id;
+      const requestViewedDate = currentState.board.day.date;
+
+      try {
+        const response = await fetch(buildCreateTaskUrl(requestFamilyId), {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
@@ -155,28 +159,38 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
           body: JSON.stringify({
             person_id: personId,
             raw_input: rawInput,
-            viewed_date: currentState.board.day.date,
+            viewed_date: requestViewedDate,
           }),
-        },
-      );
+        });
 
-      if (!response.ok) {
-        throw new Error(
-          (await response.text()) || 'Task creation failed unexpectedly.',
+        if (!response.ok) {
+          const message =
+            (await response.text()) || 'Task creation failed unexpectedly.';
+
+          if (!isReadyBoardViewFor(stateRef.current, requestFamilyId, requestViewedDate)) {
+            return;
+          }
+
+          throw new Error(message);
+        }
+
+        const payload = createTaskResponseSchema.parse(
+          (await response.json()) as unknown,
         );
+        const latestState = stateRef.current;
+
+        if (!isReadyBoardViewFor(latestState, requestFamilyId, requestViewedDate)) {
+          return;
+        }
+
+        commitState(withBoardSnapshot(latestState, payload.state));
+      } catch (error) {
+        if (!isReadyBoardViewFor(stateRef.current, requestFamilyId, requestViewedDate)) {
+          return;
+        }
+
+        throw error;
       }
-
-      const payload = createTaskResponseSchema.parse(
-        (await response.json()) as unknown,
-      );
-
-      commitState(
-        createReadyFamilyBoardState(
-          payload.state,
-          currentState.householdName,
-          currentState.todayDate,
-        ),
-      );
     },
     [commitState],
   );
@@ -338,7 +352,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [commitState, requestedDay, toggleTask]);
+  }, [commitState, requestedDay]);
 
   if (state.status !== 'ready') {
     return state;

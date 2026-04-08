@@ -36,7 +36,6 @@ function getCreateTaskTool() {
     name: toolName,
     description:
       'Create a recurring household task from natural-language text with a concise title, single emoji, and RFC 5545 day-code schedule.',
-    strict: true,
     input_schema: {
       type: 'object',
       additionalProperties: false,

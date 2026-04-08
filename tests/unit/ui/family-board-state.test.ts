@@ -5,7 +5,9 @@ import {
   findTaskCompletionStatus,
   getRealtimeCloseMessage,
   getRealtimeErrorMessage,
+  isReadyBoardViewFor,
   toggleTaskCompletionInBoard,
+  withBoardSnapshot,
   withOptimisticTaskToggle,
   withRealtimeIssue,
 } from '@/ui/hooks/family-board-state';
@@ -91,6 +93,69 @@ describe('family-board-state helpers', () => {
         message: 'The board is still visible, but live updates are paused.',
       },
     });
+  });
+
+  it('replaces the board snapshot without resetting the latest realtime state', () => {
+    const degradedState = withRealtimeIssue(
+      createReadyFamilyBoardState(board, 'River House', todayDate),
+      'The board is still visible, but live updates are paused.',
+    );
+    const nextBoard = familyBoardStateSchema.parse({
+      ...board,
+      people: [
+        {
+          ...board.people[0],
+          tasks: [
+            ...board.people[0]!.tasks,
+            {
+              task: {
+                id: 'task-piano',
+                family_id: 'family-maple',
+                person_id: 'person-jess',
+                title: 'Practice piano',
+                emoji: '🎹',
+                schedule_rules: {
+                  days: ['MO', 'TU', 'TH', 'FR'],
+                },
+                created_at: '2026-04-08T12:00:00Z',
+              },
+              completion: null,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(degradedState.status).toBe('ready');
+
+    if (degradedState.status !== 'ready') {
+      throw new Error('Expected a ready state.');
+    }
+
+    expect(withBoardSnapshot(degradedState, nextBoard)).toEqual({
+      ...degradedState,
+      board: nextBoard,
+    });
+  });
+
+  it('matches only the ready state for the same family and viewed day', () => {
+    const readyState = createReadyFamilyBoardState(board, 'River House', todayDate);
+
+    expect(isReadyBoardViewFor(readyState, 'family-maple', '2026-04-08')).toBe(
+      true,
+    );
+    expect(isReadyBoardViewFor(readyState, 'family-maple', '2026-04-09')).toBe(
+      false,
+    );
+    expect(
+      isReadyBoardViewFor(
+        {
+          status: 'loading',
+        },
+        'family-maple',
+        '2026-04-08',
+      ),
+    ).toBe(false);
   });
 
   it('applies an optimistic completion toggle to the current board snapshot', () => {

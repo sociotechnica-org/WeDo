@@ -36,6 +36,28 @@ export function createReadyFamilyBoardState(
   };
 }
 
+export function isReadyBoardViewFor(
+  currentState: FamilyBoardViewState,
+  familyId: string,
+  date: IsoDate,
+): currentState is ReadyFamilyBoardState {
+  return (
+    currentState.status === 'ready' &&
+    currentState.board.family_id === familyId &&
+    currentState.board.day.date === date
+  );
+}
+
+export function withBoardSnapshot(
+  currentState: ReadyFamilyBoardState,
+  board: FamilyBoardState,
+): ReadyFamilyBoardState {
+  return {
+    ...currentState,
+    board,
+  };
+}
+
 function createOptimisticCompletion(
   board: FamilyBoardState,
   taskId: string,

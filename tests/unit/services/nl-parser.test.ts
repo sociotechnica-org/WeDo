@@ -73,7 +73,7 @@ describe('nl-parser service', () => {
     const body = JSON.parse((request as RequestInit).body as string) as {
       model: string;
       tool_choice: { type: string; name: string };
-      tools: Array<{ strict: boolean }>;
+      tools: Array<Record<string, unknown>>;
     };
 
     expect(body.model).toBe('claude-sonnet-4-6');
@@ -81,7 +81,7 @@ describe('nl-parser service', () => {
       type: 'tool',
       name: 'create_task',
     });
-    expect(body.tools[0]?.strict).toBe(true);
+    expect(body.tools[0]).not.toHaveProperty('strict');
   });
 
   it('rejects non-tool Anthropic responses', async () => {

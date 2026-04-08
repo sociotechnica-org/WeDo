@@ -49,6 +49,14 @@ function getSocketAttachment(socket: WebSocket) {
   return webSocketAttachmentSchema.parse(socket.deserializeAttachment());
 }
 
+function tryGetSocketAttachment(socket: WebSocket) {
+  const result = webSocketAttachmentSchema.safeParse(
+    socket.deserializeAttachment(),
+  );
+
+  return result.success ? result.data : null;
+}
+
 function attachSocketState(socket: WebSocket, familyId: string, date?: string) {
   socket.serializeAttachment({
     familyId,
@@ -83,6 +91,14 @@ function getRequestPath(request: Request): string {
 }
 
 export class FamilyBoard extends DurableObject<WorkerBindings> {
+  private sendMessage(connection: WebSocket, message: string): void {
+    try {
+      connection.send(message);
+    } catch {
+      // Closed or invalid sockets should not break other family updates.
+    }
+  }
+
   private async getStateUpdateMessage(familyId: string, date: IsoDate) {
     return toStateUpdate(await getFamilyBoardState(this.env.DB, familyId, date));
   }
@@ -91,9 +107,9 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
     const dates = new Set<IsoDate>();
 
     for (const connection of this.ctx.getWebSockets()) {
-      const attachment = getSocketAttachment(connection);
+      const attachment = tryGetSocketAttachment(connection);
 
-      if (attachment.familyId !== familyId || !attachment.date) {
+      if (!attachment || attachment.familyId !== familyId || !attachment.date) {
         continue;
       }
 
@@ -110,33 +126,45 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
     const update = await this.getStateUpdateMessage(familyId, date);
 
     for (const connection of this.ctx.getWebSockets()) {
-      const attachment = getSocketAttachment(connection);
+      const attachment = tryGetSocketAttachment(connection);
 
-      if (attachment.familyId !== familyId || attachment.date !== date) {
+      if (!attachment || attachment.familyId !== familyId || attachment.date !== date) {
         continue;
       }
 
-      connection.send(update);
+      this.sendMessage(connection, update);
     }
   }
 
-  private async broadcastStateForViewedDates(familyId: string): Promise<void> {
+  private async broadcastStateForViewedDates(
+    familyId: string,
+    seededUpdatesByDate: ReadonlyMap<IsoDate, string> = new Map(),
+  ): Promise<void> {
     const viewedDates = this.getViewedDatesForFamily(familyId);
 
     if (viewedDates.length === 0) {
       return;
     }
 
-    const updatesByDate = new Map<IsoDate, string>();
+    const updatesByDate = new Map(seededUpdatesByDate);
 
     for (const date of viewedDates) {
-      updatesByDate.set(date, await this.getStateUpdateMessage(familyId, date));
+      if (updatesByDate.has(date)) {
+        continue;
+      }
+
+      try {
+        updatesByDate.set(date, await this.getStateUpdateMessage(familyId, date));
+      } catch {
+        // A secondary broadcast failure must not turn a successful D1 write
+        // into a failed mutation response.
+      }
     }
 
     for (const connection of this.ctx.getWebSockets()) {
-      const attachment = getSocketAttachment(connection);
+      const attachment = tryGetSocketAttachment(connection);
 
-      if (attachment.familyId !== familyId || !attachment.date) {
+      if (!attachment || attachment.familyId !== familyId || !attachment.date) {
         continue;
       }
 
@@ -146,7 +174,7 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
         continue;
       }
 
-      connection.send(update);
+      this.sendMessage(connection, update);
     }
   }
 
@@ -171,7 +199,10 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
         payload.viewed_date,
       );
 
-      await this.broadcastStateForViewedDates(familyId);
+      await this.broadcastStateForViewedDates(
+        familyId,
+        new Map([[payload.viewed_date, toStateUpdate(state)]]),
+      );
 
       return Response.json(
         createTaskResponseSchema.parse({

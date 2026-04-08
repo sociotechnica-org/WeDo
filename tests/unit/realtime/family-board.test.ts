@@ -246,12 +246,6 @@ describe('FamilyBoard durable object', () => {
       2,
       {},
       'family-maple',
-      '2026-04-08',
-    );
-    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
-      3,
-      {},
-      'family-maple',
       '2026-04-09',
     );
 
@@ -275,6 +269,72 @@ describe('FamilyBoard durable object', () => {
         },
       },
     });
+  });
+
+  it('returns success after a task write even if a secondary viewed-date refresh fails', async () => {
+    const ctx = new FakeDurableObjectState();
+    const todaySocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-08',
+    });
+    const tomorrowSocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-09',
+    });
+    const room = new FamilyBoard(ctx as never, { DB: {} } as never);
+
+    ctx.acceptWebSocket(todaySocket);
+    ctx.acceptWebSocket(tomorrowSocket);
+    createRecurringTask.mockResolvedValue({
+      id: 'task-piano',
+      family_id: 'family-maple',
+      person_id: 'person-jess',
+      title: 'Practice piano',
+      emoji: '🎹',
+      schedule_rules: {
+        days: ['MO', 'TU', 'TH', 'FR'],
+      },
+      created_at: '2026-04-08T10:00:00Z',
+    });
+    getFamilyBoardState.mockImplementation(
+      async (_db: unknown, _familyId: string, date: string) => {
+        if (date === '2026-04-09') {
+          throw new Error('Secondary board refresh failed.');
+        }
+
+        return {
+          ...exampleState,
+          day: {
+            date,
+            is_sunday: false,
+          },
+        };
+      },
+    );
+
+    const response = await room.fetch(
+      new Request('https://example.com/tasks/family-maple', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          person_id: 'person-jess',
+          viewed_date: '2026-04-08',
+          task: {
+            title: 'Practice piano',
+            emoji: '🎹',
+            schedule_rules: {
+              days: ['MO', 'TU', 'TH', 'FR'],
+            },
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(todaySocket.sent).toHaveLength(1);
+    expect(tomorrowSocket.sent).toHaveLength(0);
   });
 
   it('persists a toggle and broadcasts the resulting state update to connected clients', async () => {

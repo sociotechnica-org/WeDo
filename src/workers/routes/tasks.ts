@@ -13,6 +13,9 @@ type AppEnv = {
   Bindings: WorkerBindings;
 };
 
+const unexpectedTaskCreationMessage =
+  'Task creation is temporarily unavailable.';
+
 export function registerTaskRoutes(app: Hono<AppEnv>) {
   app.post('/api/families/:familyId/tasks', async (context) => {
     try {
@@ -41,7 +44,16 @@ export function registerTaskRoutes(app: Hono<AppEnv>) {
       );
 
       if (!response.ok) {
-        return context.text(await response.text(), response.status as 400 | 500);
+        if (response.status >= 500) {
+          return context.text(unexpectedTaskCreationMessage, 503);
+        }
+
+        return new Response(
+          (await response.text()) || 'Task request is invalid.',
+          {
+            status: response.status,
+          },
+        );
       }
 
       return context.json(
@@ -58,7 +70,7 @@ export function registerTaskRoutes(app: Hono<AppEnv>) {
       }
 
       if (error instanceof Error) {
-        return context.text(error.message, 503);
+        return context.text(unexpectedTaskCreationMessage, 503);
       }
 
       return context.text('Task creation failed.', 500);
