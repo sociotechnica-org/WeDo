@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { familyBoardStateSchema } from '@/types';
 import {
   createReadyFamilyBoardState,
+  deleteTaskInBoard,
   findBoardSkipDay,
   findTaskCompletionStatus,
   getRealtimeCloseMessage,
@@ -11,7 +12,10 @@ import {
   toggleTaskCompletionInBoard,
   withBoardSnapshot,
   withOptimisticSkipDay,
+  withOptimisticTaskDeletion,
   withOptimisticTaskToggle,
+  withRealtimeCloseIssue,
+  withRecoveredRealtimeIssue,
   withRealtimeIssue,
 } from '@/ui/hooks/family-board-state';
 
@@ -94,6 +98,82 @@ describe('family-board-state helpers', () => {
       realtime: {
         status: 'degraded',
         message: 'The board is still visible, but live updates are paused.',
+      },
+    });
+  });
+
+  it('restores the last confirmed board snapshot when realtime closes after an optimistic change', () => {
+    const confirmedState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+    const optimisticState = withOptimisticTaskDeletion(
+      confirmedState,
+      'task-kitchen',
+    );
+
+    expect(
+      withRecoveredRealtimeIssue(
+        optimisticState!,
+        confirmedState,
+        'Task task-kitchen does not belong to family family-maple.',
+      ),
+    ).toEqual({
+      ...confirmedState,
+      realtime: {
+        status: 'degraded',
+        message: 'Task task-kitchen does not belong to family family-maple.',
+      },
+    });
+  });
+
+  it('recovers the last confirmed board snapshot on an unexpected server close', () => {
+    const confirmedState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+    const optimisticState = withOptimisticTaskDeletion(
+      confirmedState,
+      'task-kitchen',
+    );
+
+    expect(
+      withRealtimeCloseIssue(
+        optimisticState!,
+        confirmedState,
+        'Unexpected realtime error.',
+        1011,
+      ),
+    ).toEqual({
+      ...confirmedState,
+      realtime: {
+        status: 'degraded',
+        message: 'Unexpected realtime error.',
+      },
+    });
+  });
+
+  it('keeps the current board snapshot on non-recovering socket closes', () => {
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+
+    expect(
+      withRealtimeCloseIssue(
+        readyState,
+        createReadyFamilyBoardState(board, 'River House', todayDate),
+        'Socket closed by server.',
+        1000,
+      ),
+    ).toEqual({
+      ...readyState,
+      realtime: {
+        status: 'degraded',
+        message: 'Socket closed by server.',
       },
     });
   });
@@ -198,6 +278,24 @@ describe('family-board-state helpers', () => {
       ),
     ).toBeNull();
     expect(findTaskCompletionStatus(board, 'task-missing')).toBeNull();
+  });
+
+  it('removes a task from the optimistic board snapshot', () => {
+    const readyState = createReadyFamilyBoardState(
+      board,
+      'River House',
+      todayDate,
+    );
+    const optimisticState = withOptimisticTaskDeletion(
+      readyState,
+      'task-kitchen',
+    );
+
+    expect(optimisticState?.board.people[0]?.tasks).toEqual([]);
+  });
+
+  it('returns null when an optimistic delete targets a missing task', () => {
+    expect(deleteTaskInBoard(board, 'task-missing')).toBeNull();
   });
 
   it('applies an optimistic skip day to every person on the current board snapshot', () => {

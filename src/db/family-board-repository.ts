@@ -158,6 +158,37 @@ export async function createTask(
   return task;
 }
 
+export async function removeTaskWithCompletions(
+  client: DatabaseClient,
+  familyId: string,
+  taskId: string,
+): Promise<void> {
+  // Drizzle's D1 driver does not expose batched writes, so deletion uses the
+  // raw D1 batch API to keep the task row, its completions, and streak-cache
+  // invalidation in one durable write.
+  await client.batch([
+    client
+      .prepare('delete from task_completions where task_id = ?1')
+      .bind(taskId),
+    client
+      .prepare('delete from tasks where family_id = ?1 and id = ?2')
+      .bind(familyId, taskId),
+    client
+      .prepare(
+        `
+          update streaks
+          set evaluated_through_date = null
+          where person_id in (
+            select id
+            from persons
+            where family_id = ?1
+          )
+        `,
+      )
+      .bind(familyId),
+  ]);
+}
+
 export async function createTaskCompletion(
   client: DatabaseClient,
   mutation: TaskCompletionMutation,

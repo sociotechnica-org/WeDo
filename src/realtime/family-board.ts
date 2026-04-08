@@ -14,6 +14,7 @@ import {
 } from '@/types';
 import {
   createRecurringTask,
+  deleteTask,
   FamilyBoardStateError,
   getFamilyBoardState,
   toggleSkipDay,
@@ -302,6 +303,17 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
           );
           return;
         }
+        case 'task_deleted': {
+          await deleteTask(this.env.DB, {
+            familyId,
+            taskId: payload.task_id,
+          });
+
+          // Removing a recurring task changes which rows exist on every viewed
+          // date, so deletion refreshes all open family snapshots.
+          await this.broadcastStateForViewedDates(familyId);
+          return;
+        }
         case 'skip_day_toggled': {
           const runtime = getRuntimeConfig(this.env);
           const resolvedDate = resolveBoardDate(runtime.timezone, payload.date);
@@ -327,12 +339,16 @@ export class FamilyBoard extends DurableObject<WorkerBindings> {
         }
       }
     } catch (error) {
+      const isClientError =
+        error instanceof FamilyBoardStateError ||
+        error instanceof ZodError ||
+        error instanceof SyntaxError;
       const messageText =
         error instanceof FamilyBoardStateError
           ? error.message
           : 'Unexpected realtime error.';
 
-      socket.close(1008, messageText);
+      socket.close(isClientError ? 1008 : 1011, messageText);
     }
   }
 

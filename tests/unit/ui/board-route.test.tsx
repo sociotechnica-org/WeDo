@@ -21,6 +21,7 @@ const readyBoardState = {
     message: 'The board is still visible, but live updates are paused.',
   },
   createTask: vi.fn(),
+  deleteTask: vi.fn(),
   toggleSkipDay: vi.fn(),
   toggleTask: vi.fn(),
   board: {
@@ -109,8 +110,17 @@ describe('Board routes', () => {
     expect(markup).toContain('href="/?day=2026-04-07"');
     expect(markup).toContain('Add task');
     expect(markup).toContain('Toggle Kitchen reset');
+    expect(markup).not.toContain('Delete Kitchen reset');
     expect(markup).toContain('0 of 1 tasks marked for this day.');
     expect(markup).toContain('data-testid="single-list-task-list"');
+  });
+
+  it('keeps delete affordances out of the dashboard view', () => {
+    useFamilyBoardMock.mockReturnValue(readyBoardState);
+
+    const markup = renderRoute('/?day=2026-04-07');
+
+    expect(markup).not.toContain('Delete Kitchen reset');
   });
 
   it('renders skipped-day state in both the day label and dashboard task lists', () => {

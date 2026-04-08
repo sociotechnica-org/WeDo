@@ -7,6 +7,7 @@ import {
   type InitRequest,
   type IsoDate,
   type SkipDayToggledMessage,
+  type TaskDeletedMessage,
   type ServerWebSocketMessage,
   type TaskToggledMessage,
 } from '@/types';
@@ -21,7 +22,9 @@ import {
   withBoardSnapshot,
   createReadyFamilyBoardState,
   withOptimisticTaskToggle,
+  withOptimisticTaskDeletion,
   withOptimisticSkipDay,
+  withRealtimeCloseIssue,
   withRealtimeIssue,
 } from './family-board-state';
 
@@ -70,6 +73,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
   });
   const socketRef = useRef<WebSocket | null>(null);
   const stateRef = useRef<FamilyBoardViewState>(state);
+  const confirmedStateRef = useRef<ReadyFamilyBoardState | null>(null);
 
   // Keep the ref and React state in sync so async socket callbacks always
   // reconcile against the latest board snapshot.
@@ -193,6 +197,56 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     }
   }, [commitState]);
 
+  const deleteTask = useCallback(
+    (taskId: string): boolean => {
+      const currentState = stateRef.current;
+
+      if (currentState.status !== 'ready') {
+        return false;
+      }
+
+      const socket = socketRef.current;
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        commitState(
+          withRealtimeIssue(
+            currentState,
+            'The board is still visible, but live updates are paused.',
+          ),
+        );
+
+        return false;
+      }
+
+      const optimisticState = withOptimisticTaskDeletion(currentState, taskId);
+
+      if (!optimisticState) {
+        return false;
+      }
+
+      const message = {
+        type: 'task_deleted',
+        task_id: taskId,
+      } satisfies TaskDeletedMessage;
+
+      commitState(optimisticState);
+
+      try {
+        socket.send(JSON.stringify(message));
+        return true;
+      } catch {
+        commitState(
+          withRealtimeIssue(
+            currentState,
+            'The board is still visible, but live updates are paused.',
+          ),
+        );
+        return false;
+      }
+    },
+    [commitState],
+  );
+
   const createTask = useCallback(
     async (personId: string, rawInput: string): Promise<void> => {
       const currentState = stateRef.current;
@@ -270,6 +324,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     let isDisposed = false;
     let hasInitialized = false;
 
+    confirmedStateRef.current = null;
     commitState({
       status: 'loading',
     });
@@ -326,13 +381,14 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
                 return;
               }
 
-              commitState(
-                createReadyFamilyBoardState(
-                  payload.state,
-                  bootstrap.board.householdName,
-                  bootstrap.board.todayDate,
-                ),
+              const confirmedState = createReadyFamilyBoardState(
+                payload.state,
+                bootstrap.board.householdName,
+                bootstrap.board.todayDate,
               );
+
+              confirmedStateRef.current = confirmedState;
+              commitState(confirmedState);
             } catch (error) {
               if (isDisposed) {
                 return;
@@ -386,7 +442,14 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
           }
 
           if (hasInitialized) {
-            commitState(withRealtimeIssue(stateRef.current, message));
+            commitState(
+              withRealtimeCloseIssue(
+                stateRef.current,
+                confirmedStateRef.current,
+                message,
+                event.code,
+              ),
+            );
             return;
           }
 
@@ -429,17 +492,20 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
   return {
     ...state,
     createTask,
+    deleteTask,
     toggleSkipDay,
     toggleTask,
   };
 }
 
 type ToggleTask = (taskId: string) => boolean;
+type DeleteTask = (taskId: string) => boolean;
 type ToggleSkipDay = () => boolean;
 type CreateTask = (personId: string, rawInput: string) => Promise<void>;
 
 export type ReadyFamilyBoardViewState = ReadyFamilyBoardState & {
   createTask: CreateTask;
+  deleteTask: DeleteTask;
   toggleSkipDay: ToggleSkipDay;
   toggleTask: ToggleTask;
 };

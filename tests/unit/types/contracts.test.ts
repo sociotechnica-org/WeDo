@@ -19,6 +19,7 @@ import {
   stateUpdateMessageSchema,
   streakSchema,
   taskCompletionSchema,
+  taskDeletedMessageSchema,
   taskSchema,
   taskToggledMessageSchema,
   webSocketMessageSchema,
@@ -272,6 +273,10 @@ describe('shared type contracts', () => {
       task_id: 'task-piano',
       completed: true,
     } as const;
+    const taskDeleted = {
+      type: 'task_deleted',
+      task_id: 'task-piano',
+    } as const;
     const skipDayToggled = {
       type: 'skip_day_toggled',
       date: '2026-04-07',
@@ -290,6 +295,11 @@ describe('shared type contracts', () => {
       taskToggled,
     );
     expect(webSocketMessageSchema.parse(taskToggled)).toEqual(taskToggled);
+    expect(taskDeletedMessageSchema.parse(taskDeleted)).toEqual(taskDeleted);
+    expect(clientWebSocketMessageSchema.parse(taskDeleted)).toEqual(
+      taskDeleted,
+    );
+    expect(webSocketMessageSchema.parse(taskDeleted)).toEqual(taskDeleted);
     expect(skipDayToggledMessageSchema.parse(skipDayToggled)).toEqual(
       skipDayToggled,
     );
@@ -326,6 +336,13 @@ describe('shared type contracts', () => {
 
     expect(
       clientWebSocketMessageSchema.safeParse({
+        type: 'task_deleted',
+        task_id: 'task-piano',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      taskDeletedMessageSchema.safeParse({
         type: 'task_deleted',
         date: '2026-04-07',
         task_id: 'task-piano',

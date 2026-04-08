@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const realtimeServiceMocks = vi.hoisted(() => ({
   createRecurringTask: vi.fn(),
+  deleteTask: vi.fn(),
   getFamilyBoardState: vi.fn(),
   toggleSkipDay: vi.fn(),
   toggleTaskCompletion: vi.fn(),
@@ -10,6 +11,7 @@ const realtimeServiceMocks = vi.hoisted(() => ({
 vi.mock('@/services/family-board-service', () => ({
   FamilyBoardStateError: class extends Error {},
   createRecurringTask: realtimeServiceMocks.createRecurringTask,
+  deleteTask: realtimeServiceMocks.deleteTask,
   getFamilyBoardState: realtimeServiceMocks.getFamilyBoardState,
   toggleSkipDay: realtimeServiceMocks.toggleSkipDay,
   toggleTaskCompletion: realtimeServiceMocks.toggleTaskCompletion,
@@ -19,6 +21,7 @@ import { FamilyBoard } from '@/realtime/family-board';
 
 const {
   createRecurringTask,
+  deleteTask,
   getFamilyBoardState,
   toggleSkipDay,
   toggleTaskCompletion,
@@ -100,6 +103,7 @@ const exampleState = {
 describe('FamilyBoard durable object', () => {
   beforeEach(() => {
     createRecurringTask.mockReset();
+    deleteTask.mockReset();
     getFamilyBoardState.mockReset();
     toggleSkipDay.mockReset();
     toggleTaskCompletion.mockReset();
@@ -523,6 +527,74 @@ describe('FamilyBoard durable object', () => {
     });
   });
 
+  it('deletes a task and broadcasts refreshed state to every viewed date', async () => {
+    const ctx = new FakeDurableObjectState();
+    const yesterdaySocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-07',
+    });
+    const todaySocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-08',
+    });
+    const tomorrowSocket = new FakeWebSocket({
+      familyId: 'family-maple',
+      date: '2026-04-09',
+    });
+    const room = new FamilyBoard(ctx as never, { DB: {} } as never);
+
+    ctx.acceptWebSocket(yesterdaySocket);
+    ctx.acceptWebSocket(todaySocket);
+    ctx.acceptWebSocket(tomorrowSocket);
+    deleteTask.mockResolvedValue(undefined);
+    getFamilyBoardState.mockImplementation(
+      async (_db: unknown, _familyId: string, date: string) => ({
+        ...exampleState,
+        day: {
+          date,
+          is_sunday: false,
+        },
+      }),
+    );
+
+    await room.webSocketMessage(
+      todaySocket as unknown as WebSocket,
+      JSON.stringify({
+        type: 'task_deleted',
+        task_id: 'task-piano',
+      }),
+    );
+
+    expect(deleteTask).toHaveBeenCalledWith(
+      {},
+      {
+        familyId: 'family-maple',
+        taskId: 'task-piano',
+      },
+    );
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      1,
+      {},
+      'family-maple',
+      '2026-04-07',
+    );
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      2,
+      {},
+      'family-maple',
+      '2026-04-08',
+    );
+    expect(getFamilyBoardState).toHaveBeenNthCalledWith(
+      3,
+      {},
+      'family-maple',
+      '2026-04-09',
+    );
+    expect(yesterdaySocket.sent).toHaveLength(1);
+    expect(todaySocket.sent).toHaveLength(1);
+    expect(tomorrowSocket.sent).toHaveLength(1);
+  });
+
   it('does not broadcast a retroactive task toggle to sockets viewing earlier dates', async () => {
     const ctx = new FakeDurableObjectState();
     const todaySocket = new FakeWebSocket({
@@ -634,6 +706,29 @@ describe('FamilyBoard durable object', () => {
 
     expect(socket.closed).toEqual({
       code: 1008,
+      reason: 'Unexpected realtime error.',
+    });
+  });
+
+  it('uses a server-error close code for unexpected mutation failures', async () => {
+    const room = new FamilyBoard(
+      new FakeDurableObjectState() as never,
+      { DB: {} } as never,
+    );
+    const socket = new FakeWebSocket({ familyId: 'family-maple' });
+
+    deleteTask.mockRejectedValue(new Error('Streak sync failed.'));
+
+    await room.webSocketMessage(
+      socket as unknown as WebSocket,
+      JSON.stringify({
+        type: 'task_deleted',
+        task_id: 'task-piano',
+      }),
+    );
+
+    expect(socket.closed).toEqual({
+      code: 1011,
       reason: 'Unexpected realtime error.',
     });
   });

@@ -7,6 +7,7 @@ import {
   getFamilyTask,
   removeSkipDay,
   removeTaskCompletion,
+  removeTaskWithCompletions,
   type FamilyBoardSourceData,
 } from '@/db/family-board-repository';
 import { type DatabaseClient } from '@/db/database';
@@ -60,6 +61,11 @@ type ToggleSkipDayInput = {
   date: IsoDate;
   skipped: boolean;
   createdAt?: IsoTimestamp;
+};
+
+type DeleteTaskInput = {
+  familyId: string;
+  taskId: string;
 };
 
 export class FamilyBoardStateError extends Error {}
@@ -236,5 +242,21 @@ export async function toggleSkipDay(
     await removeSkipDay(client, input.familyId, input.date);
   }
 
+  await syncFamilyCurrentStreaks(client, input.familyId, { force: true });
+}
+
+export async function deleteTask(
+  client: DatabaseClient,
+  input: DeleteTaskInput,
+): Promise<void> {
+  const task = await getFamilyTask(client, input.familyId, input.taskId);
+
+  if (!task) {
+    throw new FamilyBoardStateError(
+      `Task ${input.taskId} does not belong to family ${input.familyId}.`,
+    );
+  }
+
+  await removeTaskWithCompletions(client, input.familyId, input.taskId);
   await syncFamilyCurrentStreaks(client, input.familyId, { force: true });
 }

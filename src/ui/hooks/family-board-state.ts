@@ -158,6 +158,42 @@ export function toggleTaskCompletionInBoard(
   };
 }
 
+export function deleteTaskInBoard(
+  board: FamilyBoardState,
+  taskId: string,
+): FamilyBoardState | null {
+  let hasUpdated = false;
+
+  const people = board.people.map((personState) => {
+    const tasks = personState.tasks.filter((task) => {
+      if (task.task.id !== taskId) {
+        return true;
+      }
+
+      hasUpdated = true;
+      return false;
+    });
+
+    if (tasks.length === personState.tasks.length) {
+      return personState;
+    }
+
+    return {
+      ...personState,
+      tasks,
+    };
+  });
+
+  if (!hasUpdated) {
+    return null;
+  }
+
+  return {
+    ...board,
+    people,
+  };
+}
+
 export function toggleSkipDayInBoard(
   board: FamilyBoardState,
   skipped: boolean,
@@ -206,6 +242,22 @@ export function withOptimisticSkipDay(
   };
 }
 
+export function withOptimisticTaskDeletion(
+  currentState: ReadyFamilyBoardState,
+  taskId: string,
+): ReadyFamilyBoardState | null {
+  const board = deleteTaskInBoard(currentState.board, taskId);
+
+  if (!board) {
+    return null;
+  }
+
+  return {
+    ...currentState,
+    board,
+  };
+}
+
 export function withRealtimeIssue(
   currentState: FamilyBoardViewState,
   message: string,
@@ -221,6 +273,37 @@ export function withRealtimeIssue(
       message,
     },
   };
+}
+
+export function withRecoveredRealtimeIssue(
+  currentState: FamilyBoardViewState,
+  confirmedState: ReadyFamilyBoardState | null,
+  message: string,
+): FamilyBoardViewState {
+  if (confirmedState === null) {
+    return withRealtimeIssue(currentState, message);
+  }
+
+  return {
+    ...confirmedState,
+    realtime: {
+      status: 'degraded',
+      message,
+    },
+  };
+}
+
+export function withRealtimeCloseIssue(
+  currentState: FamilyBoardViewState,
+  confirmedState: ReadyFamilyBoardState | null,
+  message: string,
+  closeCode: number,
+): FamilyBoardViewState {
+  if (closeCode === 1008 || closeCode === 1011) {
+    return withRecoveredRealtimeIssue(currentState, confirmedState, message);
+  }
+
+  return withRealtimeIssue(currentState, message);
 }
 
 export function getRealtimeErrorMessage(hasInitialized: boolean) {
