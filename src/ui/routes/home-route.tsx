@@ -45,7 +45,7 @@ export function HomeRoute() {
     );
   }
 
-  const { board, householdName } = boardState;
+  const { board, householdName, realtime } = boardState;
 
   return (
     <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
@@ -84,6 +84,21 @@ export function HomeRoute() {
             </div>
           </div>
         </header>
+
+        {realtime.status === 'degraded' ? (
+          <section
+            aria-live="polite"
+            className="paper-panel rounded-[1.6rem] border border-[rgba(128,102,80,0.12)] px-5 py-4 shadow-[0_12px_26px_rgba(82,65,48,0.05)]"
+            role="status"
+          >
+            <p className="scribe-label text-[0.62rem] uppercase tracking-[0.34em] text-[var(--color-ink-soft)]">
+              Live updates paused
+            </p>
+            <p className="mt-2 text-[0.98rem] leading-6 text-[var(--color-ink-soft)]">
+              {realtime.message}
+            </p>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
           {board.people.map((personState, index) => (

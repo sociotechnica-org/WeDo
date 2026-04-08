@@ -32,6 +32,7 @@ This PR does not include:
 - The repo already has placeholder `CompletionRing` and `PersonColumn` components, but they render scaffold task shapes (`title`, `note`, `ink`, `wash`) instead of the real `FamilyBoardState` model (`emoji`, `title`, completion state, streaks).
 - The FEAT-005 ticket says placeholder/basic styling is acceptable before PROTO-001, but Alexandria still requires custom, quiet, non-toolkit rendering and explicitly forbids red/alarm styling or ranked columns.
 - The release plan references `CONTEXT_BRIEFING.md`, but that file is not present in this clone. For this slice, the Alexandria cards, ticket docs, and ADRs are the available Bridget briefing source.
+- Post-review hardening is part of the current slice: the bootstrap path must fail clearly when no family can be derived, worker routing must translate bootstrap-domain failures into an intentional HTTP response, and the dashboard UI must not hide post-initialization websocket faults or rely on brittle color-string transforms.
 
 ## Affected Layers And Boundaries
 
@@ -83,6 +84,7 @@ Source of truth:
 Failure and edge cases to guard:
 
 - invalid or unexpected websocket payloads
+- websocket close/error after initialization, which should remain visible to the operator without discarding the last good board snapshot
 - empty task lists for a person, including Sunday/quiet-column cases
 - 0-task columns, which must render as an empty ring rather than divide by zero
 - socket close/error before `init_response`, which should surface a clear unavailable state instead of hanging indefinitely
@@ -96,6 +98,7 @@ Failure and edge cases to guard:
 5. Remove or isolate scaffold `BoardSnapshot` usage from the home screen so the visible dashboard path is fully driven by `FamilyBoardState`.
 6. Add unit tests for the websocket hook / state mapping behavior and update e2e coverage to assert real seeded household content from the D1-backed realtime path.
 7. Run the required static checks, unit tests, structural checks, e2e tests, and Playwright visual verification in local Chrome.
+8. Harden the implementation against review findings by removing brittle presentation helpers, making family bootstrap selection explicit, surfacing websocket degradation after initialization, and mapping bootstrap-domain failures to a controlled worker response.
 
 ## Tests And Acceptance Scenarios
 
@@ -118,6 +121,7 @@ Acceptance scenarios:
 - completion rings fill proportionally and render a distinct but subtle 100% treatment
 - websocket `state_update` replaces the displayed board state without a page refresh
 - if the socket fails before initialization, the route shows a clear unavailable state
+- if the socket fails after initialization, the UI preserves the last board snapshot and surfaces a degraded realtime status instead of silently swallowing the failure
 - layout remains readable at an iPad landscape viewport without reordering columns by completion
 
 ## Risks And Open Questions

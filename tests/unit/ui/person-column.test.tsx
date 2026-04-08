@@ -62,4 +62,22 @@ describe('PersonColumn', () => {
 
     expect(markup).toContain('No tasks today.');
   });
+
+  it('uses quiet zero-state streak copy instead of a numeric zero streak', () => {
+    const markup = renderToStaticMarkup(
+      <PersonColumn
+        paletteIndex={2}
+        personState={{
+          ...personState,
+          streak: {
+            ...personState.streak,
+            current_count: 0,
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain('No streak yet');
+    expect(markup).not.toContain('0 day streak');
+  });
 });

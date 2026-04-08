@@ -2,6 +2,7 @@ type CompletionRingProps = {
   completedCount: number;
   totalCount: number;
   tint: string;
+  innerTint: string;
 };
 
 const ringRadius = 24;
@@ -11,9 +12,13 @@ export function CompletionRing({
   completedCount,
   totalCount,
   tint,
+  innerTint,
 }: CompletionRingProps) {
   const safeTotal = totalCount > 0 ? totalCount : 1;
-  const ratio = totalCount > 0 ? completedCount / safeTotal : 0;
+  const ratio =
+    totalCount > 0
+      ? Math.min(Math.max(completedCount / safeTotal, 0), 1)
+      : 0;
   const strokeDashoffset = ringCircumference * (1 - ratio);
   const isComplete = totalCount > 0 && completedCount === totalCount;
 
@@ -59,7 +64,7 @@ export function CompletionRing({
         style={{
           background: isComplete
             ? 'radial-gradient(circle, rgba(194, 202, 164, 0.34), rgba(255,248,240,0.96) 72%)'
-            : `radial-gradient(circle, ${tint.replace('0.72', '0.18')}, rgba(255,248,240,0.96) 72%)`,
+            : `radial-gradient(circle, ${innerTint}, rgba(255,248,240,0.96) 72%)`,
         }}
       />
     </div>

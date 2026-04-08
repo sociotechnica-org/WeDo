@@ -1,19 +1,28 @@
-import { asc } from 'drizzle-orm';
 import { identifierSchema, type Identifier } from '@/types';
-import { getDatabase, type DatabaseClient } from './database';
-import { personsTable } from './schema';
+import type { DatabaseClient } from './database';
 
 export async function getPrimaryFamilyId(
   client: DatabaseClient,
 ): Promise<Identifier | null> {
-  const db = getDatabase(client);
-  const [row] = await db
-    .select({
-      familyId: personsTable.family_id,
-    })
-    .from(personsTable)
-    .orderBy(asc(personsTable.family_id), asc(personsTable.display_order))
-    .limit(1);
+  // There is no dedicated families table in v1, so bootstrap from the first
+  // known family id across all family-scoped tables instead of coupling to
+  // `persons` alone.
+  const row = await client
+    .prepare(
+      `
+        select family_id
+        from (
+          select family_id from persons
+          union
+          select family_id from tasks
+          union
+          select family_id from skip_days
+        )
+        order by family_id asc
+        limit 1
+      `,
+    )
+    .first<{ family_id: string }>();
 
-  return row ? identifierSchema.parse(row.familyId) : null;
+  return row ? identifierSchema.parse(row.family_id) : null;
 }

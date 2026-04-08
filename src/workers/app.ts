@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getBoardResponse } from '@/services/board-service';
+import { BoardBootstrapError, getBoardResponse } from '@/services/board-service';
 import type { WorkerBindings } from '@/config/runtime';
 import { getFamilyRoomKey, healthResponseSchema } from '@/types';
 
@@ -9,6 +9,14 @@ type AppEnv = {
 
 export function createApp() {
   const app = new Hono<AppEnv>();
+
+  app.onError((error, context) => {
+    if (error instanceof BoardBootstrapError) {
+      return context.text(error.message, 503);
+    }
+
+    return context.text('Internal server error.', 500);
+  });
 
   app.get('/api/health', (context) => {
     return context.json(

@@ -3,19 +3,16 @@ import {
   boardResponseSchema,
   serverWebSocketMessageSchema,
   type BoardResponse,
-  type FamilyBoardState,
   type InitRequest,
   type ServerWebSocketMessage,
 } from '@/types';
-
-type FamilyBoardStateState =
-  | { status: 'loading' }
-  | {
-      status: 'ready';
-      board: FamilyBoardState;
-      householdName: string;
-    }
-  | { status: 'error'; message: string };
+import {
+  createReadyFamilyBoardState,
+  getRealtimeCloseMessage,
+  getRealtimeErrorMessage,
+  type FamilyBoardViewState,
+  withRealtimeIssue,
+} from './family-board-state';
 
 function buildSocketUrl(familyId: string): URL {
   const url = new URL(`/api/realtime/${familyId}`, window.location.origin);
@@ -40,7 +37,7 @@ async function getMessageText(
 }
 
 export function useFamilyBoard() {
-  const [state, setState] = useState<FamilyBoardStateState>({
+  const [state, setState] = useState<FamilyBoardViewState>({
     status: 'loading',
   });
 
@@ -96,13 +93,14 @@ export function useFamilyBoard() {
                 return;
               }
 
-              setState({
-                status: 'ready',
-                board: payload.state,
-                householdName: bootstrap.board.householdName,
-              });
+              setState(
+                createReadyFamilyBoardState(
+                  payload.state,
+                  bootstrap.board.householdName,
+                ),
+              );
             } catch (error) {
-              if (isDisposed || hasInitialized) {
+              if (isDisposed) {
                 return;
               }
 
@@ -110,6 +108,14 @@ export function useFamilyBoard() {
                 error instanceof Error
                   ? error.message
                   : 'Unexpected realtime payload.';
+
+              if (hasInitialized) {
+                setState((currentState) =>
+                  withRealtimeIssue(currentState, message),
+                );
+
+                return;
+              }
 
               setState({
                 status: 'error',
@@ -119,15 +125,41 @@ export function useFamilyBoard() {
           })();
         });
 
-        socket.addEventListener('close', (event) => {
-          if (isDisposed || hasInitialized) {
+        socket.addEventListener('error', () => {
+          if (isDisposed) {
+            return;
+          }
+
+          const message = getRealtimeErrorMessage(hasInitialized);
+
+          if (hasInitialized) {
+            setState((currentState) => withRealtimeIssue(currentState, message));
+
             return;
           }
 
           setState({
             status: 'error',
-            message:
-              event.reason || 'Realtime connection closed before the board loaded.',
+            message,
+          });
+        });
+
+        socket.addEventListener('close', (event) => {
+          if (isDisposed) {
+            return;
+          }
+
+          const message = getRealtimeCloseMessage(event.reason, hasInitialized);
+
+          if (hasInitialized) {
+            setState((currentState) => withRealtimeIssue(currentState, message));
+
+            return;
+          }
+
+          setState({
+            status: 'error',
+            message,
           });
         });
       } catch (error) {
