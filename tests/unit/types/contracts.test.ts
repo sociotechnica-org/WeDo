@@ -126,6 +126,23 @@ describe('shared type contracts', () => {
     ).toBe(false);
   });
 
+  it('rejects identifiers with leading or trailing whitespace', () => {
+    expect(
+      personSchema.safeParse({
+        ...examplePerson,
+        id: ' person-jess ',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      taskDeletedMessageSchema.safeParse({
+        type: 'task_deleted',
+        date: '2026-04-07',
+        task_id: ' task-piano ',
+      }).success,
+    ).toBe(false);
+  });
+
   it('accepts websocket protocol messages across the discriminated unions', () => {
     const initRequest = {
       type: 'init',

@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 export const nonEmptyStringSchema = z.string().trim().min(1);
 
-export const identifierSchema = nonEmptyStringSchema;
+export const identifierSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.trim() === value, {
+    message: 'Identifiers must not include leading or trailing whitespace.',
+  });
 
 export const isoDateSchema = z
   .string()
