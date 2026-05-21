@@ -11,3 +11,4 @@ tmp-hono/
 tmp-react/
 tmp-vite/
 wrangler.json
+docs/alexandria/.runtime/
