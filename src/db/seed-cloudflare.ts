@@ -15,6 +15,17 @@ const repoRoot = join(dirname(thisFilePath), '..', '..');
 
 export const seedTargetValues = ['local', 'remote', 'preview'] as const;
 export type SeedTarget = (typeof seedTargetValues)[number];
+export const seedModeValues = ['bootstrap', 'reset'] as const;
+export type SeedMode = (typeof seedModeValues)[number];
+
+export type SeedOptions = {
+  mode: SeedMode;
+  target: SeedTarget;
+};
+
+type WranglerCommandOptions = {
+  localWranglerPath?: string;
+};
 
 function getLocalWranglerPath(): string {
   return join(
@@ -25,11 +36,14 @@ function getLocalWranglerPath(): string {
   );
 }
 
-export function buildWranglerCommand(args: string[]): {
+export function buildWranglerCommand(
+  args: string[],
+  options: WranglerCommandOptions = {},
+): {
   args: string[];
   command: string;
 } {
-  const localWranglerPath = getLocalWranglerPath();
+  const localWranglerPath = options.localWranglerPath ?? getLocalWranglerPath();
 
   if (existsSync(localWranglerPath)) {
     return {
@@ -48,7 +62,17 @@ function isSeedTarget(value: string): value is SeedTarget {
   return seedTargetValues.includes(value as SeedTarget);
 }
 
-export function parseSeedTargetFromArgs(args: ReadonlyArray<string>): SeedTarget {
+function isSeedMode(value: string): value is SeedMode {
+  return seedModeValues.includes(value as SeedMode);
+}
+
+export function getDefaultSeedModeForTarget(target: SeedTarget): SeedMode {
+  return target === 'local' ? 'reset' : 'bootstrap';
+}
+
+export function parseSeedTargetFromArgs(
+  args: ReadonlyArray<string>,
+): SeedTarget {
   const requestedTargets = args.flatMap((argument) => {
     if (argument === '--local') {
       return ['local'];
@@ -88,6 +112,52 @@ export function parseSeedTargetFromArgs(args: ReadonlyArray<string>): SeedTarget
   return target && isSeedTarget(target) ? target : 'local';
 }
 
+export function parseSeedOptionsFromArgs(
+  args: ReadonlyArray<string>,
+): SeedOptions {
+  const target = parseSeedTargetFromArgs(args);
+  const requestedModes = args.flatMap((argument) => {
+    if (argument === '--bootstrap') {
+      return ['bootstrap'];
+    }
+
+    if (argument === '--reset') {
+      return ['reset'];
+    }
+
+    const modeMatch = argument.match(/^--mode=(bootstrap|reset)$/);
+
+    if (modeMatch?.[1] && isSeedMode(modeMatch[1])) {
+      return [modeMatch[1]];
+    }
+
+    return [];
+  });
+
+  const uniqueModes = [...new Set(requestedModes)];
+
+  if (uniqueModes.length > 1) {
+    throw new Error(
+      `Conflicting seed modes provided: ${uniqueModes.join(', ')}.`,
+    );
+  }
+
+  const [requestedMode] = uniqueModes;
+  const mode =
+    requestedMode && isSeedMode(requestedMode)
+      ? requestedMode
+      : getDefaultSeedModeForTarget(target);
+
+  if (mode === 'reset' && target !== 'local') {
+    throw new Error('Reset seed mode is only available for local D1.');
+  }
+
+  return {
+    mode,
+    target,
+  };
+}
+
 export function buildWranglerSeedArgs(
   sqlFilePath: string,
   target: SeedTarget,
@@ -102,8 +172,15 @@ export function buildWranglerSeedArgs(
   return ['d1', 'execute', 'DB', locationFlag, '--file', sqlFilePath, '--yes'];
 }
 
-export function buildSeedSqlForTarget(target: SeedTarget): string {
-  return target === 'local' ? buildLocalSeedSql() : buildBootstrapSeedSql();
+export function buildSeedSqlForTarget(
+  target: SeedTarget,
+  mode: SeedMode = getDefaultSeedModeForTarget(target),
+): string {
+  if (mode === 'reset' && target !== 'local') {
+    throw new Error('Reset seed mode is only available for local D1.');
+  }
+
+  return mode === 'reset' ? buildLocalSeedSql() : buildBootstrapSeedSql();
 }
 
 async function runWrangler(args: string[]): Promise<void> {
@@ -111,6 +188,10 @@ async function runWrangler(args: string[]): Promise<void> {
     const invocation = buildWranglerCommand(args);
     const child = spawn(invocation.command, invocation.args, {
       cwd: repoRoot,
+      env: {
+        ...process.env,
+        CI: process.env.CI ?? '1',
+      },
       stdio: 'inherit',
     });
 
@@ -128,16 +209,17 @@ async function runWrangler(args: string[]): Promise<void> {
 
 export async function seedCloudflareDatabase(
   target: SeedTarget = 'local',
+  mode: SeedMode = getDefaultSeedModeForTarget(target),
 ): Promise<void> {
   const tempDir = await mkdtemp(join(tmpdir(), 'wedo-d1-seed-'));
   const sqlFile = join(tempDir, 'seed.sql');
 
   try {
-    await writeFile(sqlFile, buildSeedSqlForTarget(target), 'utf8');
+    await writeFile(sqlFile, buildSeedSqlForTarget(target, mode), 'utf8');
     await runWrangler(buildWranglerSeedArgs(sqlFile, target));
 
     process.stdout.write(
-      `Seeded ${target} D1 with ${martinSeedData.persons.length} persons, ${martinSeedData.tasks.length} tasks, and ${martinSeedData.streaks.length} streak rows.\n`,
+      `Seeded ${target} D1 in ${mode} mode with ${martinSeedData.persons.length} persons, ${martinSeedData.tasks.length} tasks, and ${martinSeedData.streaks.length} streak rows.\n`,
     );
   } finally {
     await rm(tempDir, { force: true, recursive: true });
@@ -145,7 +227,9 @@ export async function seedCloudflareDatabase(
 }
 
 if (process.argv[1] === thisFilePath) {
-  void seedCloudflareDatabase(parseSeedTargetFromArgs(process.argv.slice(2))).catch(
+  const options = parseSeedOptionsFromArgs(process.argv.slice(2));
+
+  void seedCloudflareDatabase(options.target, options.mode).catch(
     (error: unknown) => {
       console.error(error);
       process.exitCode = 1;

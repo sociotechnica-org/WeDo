@@ -8,6 +8,11 @@ const personRouteMocks = vi.hoisted(() => ({
   saveFamilyPersons: vi.fn(),
 }));
 
+const settingsRouteMocks = vi.hoisted(() => ({
+  getSavedFamilyTimezone: vi.fn(),
+  saveFamilySettings: vi.fn(),
+}));
+
 vi.mock('@/services/nl-parser', () => ({
   NlTaskParserError: class extends Error {},
   parseNaturalLanguageTask: taskRouteMocks.parseNaturalLanguageTask,
@@ -18,12 +23,21 @@ vi.mock('@/services/person-settings', () => ({
   saveFamilyPersons: personRouteMocks.saveFamilyPersons,
 }));
 
+vi.mock('@/services/family-settings', () => ({
+  FamilySettingsError: class extends Error {},
+  getSavedFamilyTimezone: settingsRouteMocks.getSavedFamilyTimezone,
+  saveFamilySettings: settingsRouteMocks.saveFamilySettings,
+}));
+
 import { createApp } from '@/workers/app';
 
 describe('workers app realtime route', () => {
   beforeEach(() => {
     taskRouteMocks.parseNaturalLanguageTask.mockReset();
     personRouteMocks.saveFamilyPersons.mockReset();
+    settingsRouteMocks.getSavedFamilyTimezone.mockReset();
+    settingsRouteMocks.getSavedFamilyTimezone.mockResolvedValue(null);
+    settingsRouteMocks.saveFamilySettings.mockReset();
   });
 
   it('returns a controlled 503 when dashboard bootstrap cannot find a family', async () => {
@@ -490,6 +504,50 @@ describe('workers app realtime route', () => {
             tasks: [],
           },
         ],
+      },
+    });
+  });
+
+  it('persists family timezone settings through the REST route', async () => {
+    settingsRouteMocks.saveFamilySettings.mockResolvedValue({
+      family_id: 'family-123',
+      timezone: 'America/Los_Angeles',
+      updated_at: '2026-04-08T12:00:00Z',
+    });
+
+    const app = createApp();
+
+    const response = await app.fetch(
+      new Request('https://example.com/api/families/family-123/settings', {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          timezone: 'America/Los_Angeles',
+        }),
+      }),
+      {
+        DB: {} as never,
+        FAMILY_BOARD: {
+          getByName: vi.fn(),
+        },
+      } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(settingsRouteMocks.saveFamilySettings).toHaveBeenCalledWith(
+      {},
+      {
+        familyId: 'family-123',
+        timezone: 'America/Los_Angeles',
+      },
+    );
+    await expect(response.json()).resolves.toEqual({
+      settings: {
+        family_id: 'family-123',
+        timezone: 'America/Los_Angeles',
+        updated_at: '2026-04-08T12:00:00Z',
       },
     });
   });

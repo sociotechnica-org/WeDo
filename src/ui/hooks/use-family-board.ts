@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   boardResponseSchema,
   createTaskResponseSchema,
+  saveFamilySettingsResponseSchema,
   savePersonsResponseSchema,
   serverWebSocketMessageSchema,
   type BoardResponse,
   type InitRequest,
   type IsoDate,
   type PersonSettingsEntry,
+  type Timezone,
   type SkipDayToggledMessage,
   type TaskDeletedMessage,
   type ServerWebSocketMessage,
@@ -58,6 +60,13 @@ function buildCreateTaskUrl(familyId: string): string {
 function buildSavePersonsUrl(familyId: string): string {
   return new URL(
     `/api/families/${familyId}/persons`,
+    window.location.origin,
+  ).toString();
+}
+
+function buildSaveFamilySettingsUrl(familyId: string): string {
+  return new URL(
+    `/api/families/${familyId}/settings`,
     window.location.origin,
   ).toString();
 }
@@ -395,6 +404,80 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     [commitState],
   );
 
+  const saveFamilySettings = useCallback(
+    async (timezone: Timezone): Promise<void> => {
+      const currentState = stateRef.current;
+
+      if (currentState.status !== 'ready') {
+        throw new Error('The board is not ready for family settings.');
+      }
+
+      const requestFamilyId = currentState.board.family_id;
+      const requestViewedDate = currentState.board.day.date;
+
+      try {
+        const response = await fetch(
+          buildSaveFamilySettingsUrl(requestFamilyId),
+          {
+            method: 'PUT',
+            headers: {
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              timezone,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          const message =
+            (await response.text()) || 'Saving family settings failed.';
+
+          if (
+            !isReadyBoardViewFor(
+              stateRef.current,
+              requestFamilyId,
+              requestViewedDate,
+            )
+          ) {
+            return;
+          }
+
+          throw new Error(message);
+        }
+
+        const payload = saveFamilySettingsResponseSchema.parse(
+          (await response.json()) as unknown,
+        );
+        const latestState = stateRef.current;
+
+        if (
+          !isReadyBoardViewFor(latestState, requestFamilyId, requestViewedDate)
+        ) {
+          return;
+        }
+
+        commitState({
+          ...latestState,
+          timezone: payload.settings.timezone,
+        });
+      } catch (error) {
+        if (
+          !isReadyBoardViewFor(
+            stateRef.current,
+            requestFamilyId,
+            requestViewedDate,
+          )
+        ) {
+          return;
+        }
+
+        throw error;
+      }
+    },
+    [commitState],
+  );
+
   useEffect(() => {
     // Changing the requested day should rebuild the board snapshot against a
     // fresh bootstrap + socket initialization for that exact date.
@@ -402,9 +485,16 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     let isDisposed = false;
     let hasInitialized = false;
 
-    confirmedStateRef.current = null;
-    commitState({
+    const loadingState = {
       status: 'loading',
+    } satisfies FamilyBoardViewState;
+
+    confirmedStateRef.current = null;
+    stateRef.current = loadingState;
+    queueMicrotask(() => {
+      if (!isDisposed) {
+        setState(loadingState);
+      }
     });
 
     async function connect() {
@@ -462,6 +552,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
               const confirmedState = createReadyFamilyBoardState(
                 payload.state,
                 bootstrap.board.householdName,
+                bootstrap.board.timezone,
                 bootstrap.board.todayDate,
               );
 
@@ -572,6 +663,7 @@ export function useFamilyBoard(requestedDay?: IsoDate) {
     createTask,
     deleteTask,
     savePersons,
+    saveFamilySettings,
     toggleSkipDay,
     toggleTask,
   };
@@ -581,11 +673,13 @@ type ToggleTask = (taskId: string) => boolean;
 type DeleteTask = (taskId: string) => boolean;
 type ToggleSkipDay = () => boolean;
 type CreateTask = (personId: string, rawInput: string) => Promise<void>;
+type SaveFamilySettings = (timezone: Timezone) => Promise<void>;
 type SavePersons = (people: PersonSettingsEntry[]) => Promise<void>;
 
 export type ReadyFamilyBoardViewState = ReadyFamilyBoardState & {
   createTask: CreateTask;
   deleteTask: DeleteTask;
+  saveFamilySettings: SaveFamilySettings;
   savePersons: SavePersons;
   toggleSkipDay: ToggleSkipDay;
   toggleTask: ToggleTask;

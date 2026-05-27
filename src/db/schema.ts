@@ -8,7 +8,7 @@ import {
   text,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
-import type { ScheduleRules } from '../types/shared';
+import type { ScheduleRules, Timezone } from '../types/shared';
 
 export const personsTable = sqliteTable(
   'persons',
@@ -113,7 +113,31 @@ export const streaksTable = sqliteTable(
   ],
 );
 
+export const familySettingsTable = sqliteTable(
+  'family_settings',
+  {
+    family_id: text('family_id').primaryKey(),
+    timezone: text('timezone').$type<Timezone>().notNull(),
+    updated_at: text('updated_at').notNull(),
+  },
+  (table) => [
+    check(
+      'family_settings_timezone_supported',
+      sql`${table.timezone} in (
+        'America/New_York',
+        'America/Chicago',
+        'America/Denver',
+        'America/Phoenix',
+        'America/Los_Angeles',
+        'America/Anchorage',
+        'Pacific/Honolulu'
+      )`,
+    ),
+  ],
+);
+
 export const schema = {
+  family_settings: familySettingsTable,
   persons: personsTable,
   tasks: tasksTable,
   task_completions: taskCompletionsTable,
@@ -131,3 +155,5 @@ export type SkipDayRow = typeof skipDaysTable.$inferSelect;
 export type NewSkipDayRow = typeof skipDaysTable.$inferInsert;
 export type StreakRow = typeof streaksTable.$inferSelect;
 export type NewStreakRow = typeof streaksTable.$inferInsert;
+export type FamilySettingsRow = typeof familySettingsTable.$inferSelect;
+export type NewFamilySettingsRow = typeof familySettingsTable.$inferInsert;

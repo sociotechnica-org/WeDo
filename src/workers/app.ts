@@ -5,6 +5,7 @@ import {
 } from '@/services/board-service';
 import type { WorkerBindings } from '@/config/runtime';
 import { registerPersonRoutes } from '@/workers/routes/persons';
+import { registerSettingsRoutes } from '@/workers/routes/settings';
 import { registerTaskRoutes } from '@/workers/routes/tasks';
 import {
   boardRequestQuerySchema,
@@ -63,6 +64,7 @@ export function createApp() {
 
   registerTaskRoutes(app);
   registerPersonRoutes(app);
+  registerSettingsRoutes(app);
 
   return app;
 }

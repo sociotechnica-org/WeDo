@@ -11,7 +11,7 @@ export function useReadyBoard() {
 }
 
 export function useReadyBoardSnapshot(): ReadyFamilyBoardState {
-  const { board, householdName, realtime, status, todayDate } =
+  const { board, householdName, realtime, status, timezone, todayDate } =
     useReadyBoardContext();
 
   return {
@@ -19,6 +19,7 @@ export function useReadyBoardSnapshot(): ReadyFamilyBoardState {
     householdName,
     realtime,
     status,
+    timezone,
     todayDate,
   };
 }
