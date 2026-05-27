@@ -40,7 +40,7 @@ export function DayNavigation({
 
   return (
     <div
-      className="paper-sheet grid gap-3 rounded-[2rem] border border-[rgba(107,90,75,0.08)] px-3 py-3 sm:grid-cols-[auto_minmax(12rem,1fr)_auto] sm:items-center sm:gap-4"
+      className="grid gap-3 px-1 py-1 sm:grid-cols-[auto_minmax(12rem,1fr)_auto] sm:items-center sm:gap-4"
       data-testid="day-navigation"
     >
       <Link
@@ -52,18 +52,15 @@ export function DayNavigation({
         <span aria-hidden="true">←</span>
       </Link>
 
-      <div className="min-w-0 px-1 text-left sm:text-center">
-        <p className="scribe-label text-[0.58rem] uppercase tracking-[0.32em] text-[var(--color-ink-soft)]">
-          Day
+      <div className="min-w-0 px-1 text-center">
+        <p
+          className={`hand-title truncate text-[2rem] leading-none text-[var(--color-ink)] transition-all duration-200 lg:text-[2.35rem] ${isSkipped ? 'line-through decoration-[rgba(107,90,75,0.58)] decoration-[2px]' : ''}`}
+          data-skipped={isSkipped ? 'true' : 'false'}
+          data-testid="day-label"
+        >
+          {formatDayLabel(currentDate)}
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-3 sm:justify-center">
-          <p
-            className={`hand-title truncate text-[2rem] leading-none text-[var(--color-ink)] transition-all duration-200 lg:text-[2.35rem] ${isSkipped ? 'line-through decoration-[rgba(107,90,75,0.58)] decoration-[2px]' : ''}`}
-            data-skipped={isSkipped ? 'true' : 'false'}
-            data-testid="day-label"
-          >
-            {formatDayLabel(currentDate)}
-          </p>
+        <div className="mt-2 flex justify-center">
           <button
             aria-label={`Toggle skip day for ${formatDayLabel(currentDate)}`}
             aria-pressed={isSkipped}

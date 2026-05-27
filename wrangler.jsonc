@@ -9,9 +9,9 @@
     "bindings": [
       {
         "name": "FAMILY_BOARD",
-        "class_name": "FamilyBoard"
-      }
-    ]
+        "class_name": "FamilyBoard",
+      },
+    ],
   },
   "d1_databases": [
     {
@@ -20,14 +20,14 @@
       // Replace these placeholder IDs after creating the shared remote D1 database.
       "database_id": "00000000-0000-0000-0000-000000000000",
       "preview_database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "src/db/migrations"
-    }
+      "migrations_dir": "src/db/migrations",
+    },
   ],
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["FamilyBoard"]
-    }
+      "new_sqlite_classes": ["FamilyBoard"],
+    },
   ],
   "assets": {
     "not_found_handling": "single-page-application",
@@ -44,14 +44,14 @@
     "TIMEZONE": "America/New_York",
   },
   "env": {
-    "e2e": {
+    "local": {
       "durable_objects": {
         "bindings": [
           {
             "name": "FAMILY_BOARD",
-            "class_name": "FamilyBoard"
-          }
-        ]
+            "class_name": "FamilyBoard",
+          },
+        ],
       },
       "d1_databases": [
         {
@@ -59,8 +59,32 @@
           "database_name": "we-do",
           "database_id": "00000000-0000-0000-0000-000000000000",
           "preview_database_id": "00000000-0000-0000-0000-000000000000",
-          "migrations_dir": "src/db/migrations"
-        }
+          "migrations_dir": "src/db/migrations",
+        },
+      ],
+      "vars": {
+        "HOUSEHOLD_NAME": "Maple House",
+        "TASK_PARSER_MODE": "live",
+        "TIMEZONE": "America/New_York",
+      },
+    },
+    "e2e": {
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "FAMILY_BOARD",
+            "class_name": "FamilyBoard",
+          },
+        ],
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "we-do",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "preview_database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "src/db/migrations",
+        },
       ],
       "vars": {
         "HOUSEHOLD_NAME": "Maple House",

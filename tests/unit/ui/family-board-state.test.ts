@@ -66,11 +66,17 @@ describe('family-board-state helpers', () => {
 
   it('creates a live ready state from the latest board snapshot', () => {
     expect(
-      createReadyFamilyBoardState(board, 'River House', todayDate),
+      createReadyFamilyBoardState(
+        board,
+        'River House',
+        'America/New_York',
+        todayDate,
+      ),
     ).toEqual({
       status: 'ready',
       board,
       householdName: 'River House',
+      timezone: 'America/New_York',
       todayDate,
       realtime: {
         status: 'live',
@@ -82,6 +88,7 @@ describe('family-board-state helpers', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
 
@@ -94,6 +101,7 @@ describe('family-board-state helpers', () => {
       status: 'ready',
       board,
       householdName: 'River House',
+      timezone: 'America/New_York',
       todayDate,
       realtime: {
         status: 'degraded',
@@ -106,6 +114,7 @@ describe('family-board-state helpers', () => {
     const confirmedState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
     const optimisticState = withOptimisticTaskDeletion(
@@ -132,6 +141,7 @@ describe('family-board-state helpers', () => {
     const confirmedState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
     const optimisticState = withOptimisticTaskDeletion(
@@ -159,13 +169,19 @@ describe('family-board-state helpers', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
 
     expect(
       withRealtimeCloseIssue(
         readyState,
-        createReadyFamilyBoardState(board, 'River House', todayDate),
+        createReadyFamilyBoardState(
+          board,
+          'River House',
+          'America/New_York',
+          todayDate,
+        ),
         'Socket closed by server.',
         1000,
       ),
@@ -180,7 +196,12 @@ describe('family-board-state helpers', () => {
 
   it('replaces the board snapshot without resetting the latest realtime state', () => {
     const degradedState = withRealtimeIssue(
-      createReadyFamilyBoardState(board, 'River House', todayDate),
+      createReadyFamilyBoardState(
+        board,
+        'River House',
+        'America/New_York',
+        todayDate,
+      ),
       'The board is still visible, but live updates are paused.',
     );
     const nextBoard = familyBoardStateSchema.parse({
@@ -225,6 +246,7 @@ describe('family-board-state helpers', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
 
@@ -249,6 +271,7 @@ describe('family-board-state helpers', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
     const completedAt = '2026-04-08T12:00:00Z';
@@ -284,6 +307,7 @@ describe('family-board-state helpers', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
     const optimisticState = withOptimisticTaskDeletion(
@@ -302,6 +326,7 @@ describe('family-board-state helpers', () => {
     const readyState = createReadyFamilyBoardState(
       board,
       'River House',
+      'America/New_York',
       todayDate,
     );
     const optimisticState = withOptimisticSkipDay(

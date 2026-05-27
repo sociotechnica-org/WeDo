@@ -1,15 +1,23 @@
 import {
+  defaultTimezone,
+  familySettingsSchema,
   personSchema,
   scheduleRulesSchema,
   streakSchema,
   taskSchema,
+  type FamilySettings,
   type Person,
   type ScheduleRules,
   type Streak,
   type Task,
 } from '../types';
 import { getDatabase, type DatabaseClient } from './database';
-import { personsTable, streaksTable, tasksTable } from './schema';
+import {
+  familySettingsTable,
+  personsTable,
+  streaksTable,
+  tasksTable,
+} from './schema';
 
 export const martinFamilyId = '2b95f346-f41d-4c78-8ec6-bd37ec0117b4';
 const seedCreatedAt = '2026-04-08T00:00:00Z';
@@ -183,6 +191,12 @@ const martinStreakRecords = martinPersonRecords.map((person) =>
   }),
 );
 
+const martinFamilySettingsRecord = familySettingsSchema.parse({
+  family_id: martinFamilyId,
+  timezone: defaultTimezone,
+  updated_at: seedCreatedAt,
+});
+
 export const martinFamilyPersons = martinPersonRecords.map((person) =>
   personSchema.parse(person),
 );
@@ -194,8 +208,12 @@ export const martinFamilyTasks = martinTaskRecords.map((task) =>
 export const martinFamilyStreaks =
   martinStreakRecords satisfies ReadonlyArray<Streak>;
 
+export const martinFamilySettings =
+  martinFamilySettingsRecord satisfies FamilySettings;
+
 export const martinSeedData = {
   family_id: martinFamilyId,
+  family_settings: martinFamilySettings,
   persons: martinFamilyPersons,
   tasks: martinFamilyTasks,
   task_completions: [] as const,
@@ -249,6 +267,7 @@ function buildInsertStatement(
 
 export function buildBootstrapSeedSql(): string {
   return [
+    buildInsertStatement('family_settings', [martinFamilySettings]),
     buildInsertStatement('persons', martinFamilyPersons),
     buildInsertStatement('tasks', martinFamilyTasks),
     buildInsertStatement('streaks', martinFamilyStreaks),
@@ -263,6 +282,7 @@ export function buildLocalSeedSql(): string {
     'DELETE FROM `tasks`;',
     'DELETE FROM `streaks`;',
     'DELETE FROM `skip_days`;',
+    'DELETE FROM `family_settings`;',
     'DELETE FROM `persons`;',
     buildBootstrapSeedSql(),
   ]
@@ -272,6 +292,11 @@ export function buildLocalSeedSql(): string {
 
 export async function seedDatabase(client: DatabaseClient): Promise<void> {
   const db = getDatabase(client);
+
+  await db
+    .insert(familySettingsTable)
+    .values(martinFamilySettings)
+    .onConflictDoNothing();
 
   await db
     .insert(personsTable)

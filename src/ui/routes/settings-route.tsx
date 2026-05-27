@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   personSettingsEntrySchema,
   savePersonsRequestSchema,
+  supportedTimezones,
+  timezoneSchema,
+  type Timezone,
 } from '@/types';
 import { RealtimeStatusBanner } from '@/ui/components/realtime-status-banner';
 import { buildDayHref } from '@/ui/lib/day-navigation';
@@ -15,6 +18,40 @@ type PersonDraftRow = {
   name: string;
   emoji: string;
 };
+
+const timezoneOptions = [
+  {
+    value: 'America/New_York',
+    label: 'Eastern',
+  },
+  {
+    value: 'America/Chicago',
+    label: 'Central',
+  },
+  {
+    value: 'America/Denver',
+    label: 'Mountain',
+  },
+  {
+    value: 'America/Phoenix',
+    label: 'Arizona',
+  },
+  {
+    value: 'America/Los_Angeles',
+    label: 'Pacific',
+  },
+  {
+    value: 'America/Anchorage',
+    label: 'Alaska',
+  },
+  {
+    value: 'Pacific/Honolulu',
+    label: 'Hawaii',
+  },
+] satisfies ReadonlyArray<{
+  label: string;
+  value: Timezone;
+}>;
 
 function createDraftRows(
   people: ReturnType<typeof useReadyBoard>['board']['people'],
@@ -36,11 +73,21 @@ function getIssueMessage(error: {
 }
 
 export function SettingsRoute() {
-  const { board, householdName, realtime, savePersons, todayDate } =
-    useReadyBoard();
+  const {
+    board,
+    householdName,
+    realtime,
+    saveFamilySettings,
+    savePersons,
+    timezone,
+    todayDate,
+  } = useReadyBoard();
   const navigate = useNavigate();
   const dashboardHref = buildDayHref('/', board.day.date, todayDate);
-  const [draftRows, setDraftRows] = useState(() => createDraftRows(board.people));
+  const [draftRows, setDraftRows] = useState(() =>
+    createDraftRows(board.people),
+  );
+  const [draftTimezone, setDraftTimezone] = useState<Timezone>(timezone);
   const [newName, setNewName] = useState('');
   const [newEmoji, setNewEmoji] = useState('');
   const [confirmingRemovalId, setConfirmingRemovalId] = useState<string | null>(
@@ -70,7 +117,9 @@ export function SettingsRoute() {
 
   function moveDraftRow(localId: string, direction: -1 | 1) {
     setDraftRows((currentRows) => {
-      const currentIndex = currentRows.findIndex((row) => row.localId === localId);
+      const currentIndex = currentRows.findIndex(
+        (row) => row.localId === localId,
+      );
 
       if (currentIndex < 0) {
         return currentRows;
@@ -121,7 +170,9 @@ export function SettingsRoute() {
     setNewEmoji('');
     setConfirmingRemovalId(null);
     setErrorMessage(null);
-    setNoticeMessage('Person added to the draft list. Save to update the board.');
+    setNoticeMessage(
+      'Person added to the draft list. Save to update the board.',
+    );
   }
 
   function handleRemovePerson(localId: string) {
@@ -138,6 +189,18 @@ export function SettingsRoute() {
     setNoticeMessage(
       'Person removed from the draft list. Save to update the board.',
     );
+  }
+
+  function updateDraftTimezone(value: string) {
+    const parsed = timezoneSchema.safeParse(value);
+
+    if (!parsed.success) {
+      setErrorMessage('Choose a supported timezone.');
+      return;
+    }
+
+    setDraftTimezone(parsed.data);
+    setErrorMessage(null);
   }
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
@@ -158,15 +221,21 @@ export function SettingsRoute() {
       return;
     }
 
+    if (!supportedTimezones.includes(draftTimezone)) {
+      setErrorMessage('Choose a supported timezone.');
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage(null);
 
     try {
+      await saveFamilySettings(draftTimezone);
       await savePersons(parsed.data.people);
-      await navigate(dashboardHref);
+      await navigate('/');
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Saving person settings failed.',
+        error instanceof Error ? error.message : 'Saving settings failed.',
       );
     } finally {
       setIsSaving(false);
@@ -222,6 +291,30 @@ export function SettingsRoute() {
           }}
         >
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <label className="block max-w-sm">
+                <span className="scribe-label text-[0.68rem] uppercase tracking-[0.32em] text-[var(--color-ink-soft)]">
+                  Home timezone
+                </span>
+                <select
+                  className="stationery-input mt-3 px-4 py-3 text-[1.02rem]"
+                  disabled={isSaving}
+                  onChange={(event) => {
+                    updateDraftTimezone(event.target.value);
+                  }}
+                  value={draftTimezone}
+                >
+                  {timezoneOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="scribe-label text-[0.68rem] uppercase tracking-[0.32em] text-[var(--color-ink-soft)]">
                 People on the board
@@ -286,7 +379,11 @@ export function SettingsRoute() {
                         className="stationery-input mt-2 px-3 py-3 text-[1.15rem]"
                         disabled={isSaving}
                         onChange={(event) => {
-                          updateDraftRow(row.localId, 'emoji', event.target.value);
+                          updateDraftRow(
+                            row.localId,
+                            'emoji',
+                            event.target.value,
+                          );
                         }}
                         value={row.emoji}
                       />
@@ -300,7 +397,11 @@ export function SettingsRoute() {
                         className="stationery-input mt-2 px-4 py-3 text-[1.02rem]"
                         disabled={isSaving}
                         onChange={(event) => {
-                          updateDraftRow(row.localId, 'name', event.target.value);
+                          updateDraftRow(
+                            row.localId,
+                            'name',
+                            event.target.value,
+                          );
                         }}
                         value={row.name}
                       />

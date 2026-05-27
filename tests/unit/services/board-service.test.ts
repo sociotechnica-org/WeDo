@@ -4,8 +4,16 @@ const boardRepositoryMocks = vi.hoisted(() => ({
   getPrimaryFamilyId: vi.fn(),
 }));
 
+const familySettingsMocks = vi.hoisted(() => ({
+  getSavedFamilyTimezone: vi.fn(),
+}));
+
 vi.mock('@/db/board-repository', () => ({
   getPrimaryFamilyId: boardRepositoryMocks.getPrimaryFamilyId,
+}));
+
+vi.mock('@/services/family-settings', () => ({
+  getSavedFamilyTimezone: familySettingsMocks.getSavedFamilyTimezone,
 }));
 
 import {
@@ -16,10 +24,13 @@ import {
 } from '@/services/board-service';
 
 const { getPrimaryFamilyId } = boardRepositoryMocks;
+const { getSavedFamilyTimezone } = familySettingsMocks;
 
 describe('board-service', () => {
   beforeEach(() => {
     getPrimaryFamilyId.mockReset();
+    getSavedFamilyTimezone.mockReset();
+    getSavedFamilyTimezone.mockResolvedValue(null);
   });
 
   it('uses the configured timezone to derive the canonical board date', () => {
@@ -46,6 +57,7 @@ describe('board-service', () => {
       board: {
         familyId: 'family-maple',
         householdName: 'River House',
+        timezone: 'America/New_York',
         date: '2026-04-08',
         todayDate: '2026-04-08',
       },
@@ -69,6 +81,25 @@ describe('board-service', () => {
 
     expect(response.board.date).toBe('2026-04-09');
     expect(response.board.todayDate).toBe('2026-04-08');
+  });
+
+  it('uses persisted family timezone before runtime defaults', async () => {
+    getPrimaryFamilyId.mockResolvedValue('family-maple');
+    getSavedFamilyTimezone.mockResolvedValue('America/Los_Angeles');
+
+    const response = await getBoardResponse(
+      {
+        DB: {} as never,
+        HOUSEHOLD_NAME: 'River House',
+        TIMEZONE: 'America/New_York',
+      },
+      {
+        now: new Date('2026-04-08T06:30:00Z'),
+      },
+    );
+
+    expect(response.board.timezone).toBe('America/Los_Angeles');
+    expect(response.board.todayDate).toBe('2026-04-07');
   });
 
   it('rejects bootstrap when no household data exists yet', async () => {

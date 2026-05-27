@@ -3,6 +3,7 @@ import {
   buildWranglerCommand,
   buildSeedSqlForTarget,
   buildWranglerSeedArgs,
+  parseSeedOptionsFromArgs,
   parseSeedTargetFromArgs,
 } from '@/db/seed-cloudflare';
 
@@ -22,9 +23,54 @@ describe('seed cloudflare target parsing', () => {
   });
 
   it('rejects conflicting target flags', () => {
+    expect(() => parseSeedTargetFromArgs(['--local', '--remote'])).toThrowError(
+      /conflicting seed targets/i,
+    );
+  });
+});
+
+describe('seed cloudflare mode parsing', () => {
+  it('keeps local seed reset as the default for explicit reset workflows', () => {
+    expect(parseSeedOptionsFromArgs([])).toEqual({
+      mode: 'reset',
+      target: 'local',
+    });
+  });
+
+  it('accepts a non-destructive local bootstrap mode for dev setup', () => {
+    expect(parseSeedOptionsFromArgs(['--local', '--bootstrap'])).toEqual({
+      mode: 'bootstrap',
+      target: 'local',
+    });
+    expect(
+      parseSeedOptionsFromArgs(['--target=local', '--mode=bootstrap']),
+    ).toEqual({
+      mode: 'bootstrap',
+      target: 'local',
+    });
+  });
+
+  it('defaults remote and preview seed targets to bootstrap mode', () => {
+    expect(parseSeedOptionsFromArgs(['--remote'])).toEqual({
+      mode: 'bootstrap',
+      target: 'remote',
+    });
+    expect(parseSeedOptionsFromArgs(['--preview'])).toEqual({
+      mode: 'bootstrap',
+      target: 'preview',
+    });
+  });
+
+  it('rejects conflicting seed modes', () => {
     expect(() =>
-      parseSeedTargetFromArgs(['--local', '--remote']),
-    ).toThrowError(/conflicting seed targets/i);
+      parseSeedOptionsFromArgs(['--bootstrap', '--reset']),
+    ).toThrowError(/conflicting seed modes/i);
+  });
+
+  it('rejects destructive remote seed requests', () => {
+    expect(() =>
+      parseSeedOptionsFromArgs(['--remote', '--reset']),
+    ).toThrowError(/only available for local d1/i);
   });
 });
 
@@ -53,7 +99,11 @@ describe('seed cloudflare wrangler arguments', () => {
 
 describe('seed cloudflare wrangler invocation', () => {
   it('falls back to npm exec when no local wrangler binary is present', () => {
-    expect(buildWranglerCommand(['--version'])).toEqual({
+    expect(
+      buildWranglerCommand(['--version'], {
+        localWranglerPath: '/definitely/not/a/wrangler/binary',
+      }),
+    ).toEqual({
       command: process.platform === 'win32' ? 'npm.cmd' : 'npm',
       args: ['exec', 'wrangler', '--', '--version'],
     });
@@ -63,10 +113,25 @@ describe('seed cloudflare wrangler invocation', () => {
 describe('seed cloudflare SQL selection', () => {
   it('keeps local seeding destructive for reset workflows', () => {
     expect(buildSeedSqlForTarget('local')).toContain('DELETE FROM `persons`;');
+    expect(buildSeedSqlForTarget('local', 'reset')).toContain(
+      'DELETE FROM `persons`;',
+    );
+  });
+
+  it('supports non-destructive local bootstrap seeding for dev setup', () => {
+    expect(buildSeedSqlForTarget('local', 'bootstrap')).not.toContain(
+      'DELETE FROM',
+    );
   });
 
   it('keeps remote and preview seeding non-destructive', () => {
     expect(buildSeedSqlForTarget('remote')).not.toContain('DELETE FROM');
     expect(buildSeedSqlForTarget('preview')).not.toContain('DELETE FROM');
+  });
+
+  it('does not allow destructive reset SQL for remote targets', () => {
+    expect(() => buildSeedSqlForTarget('remote', 'reset')).toThrowError(
+      /only available for local d1/i,
+    );
   });
 });

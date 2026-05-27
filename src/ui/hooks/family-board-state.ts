@@ -3,6 +3,7 @@ import type {
   IsoDate,
   SkipDay,
   TaskCompletion,
+  Timezone,
 } from '@/types';
 
 type RealtimeState =
@@ -16,6 +17,7 @@ export type ReadyFamilyBoardState = {
   status: 'ready';
   board: FamilyBoardState;
   householdName: string;
+  timezone: Timezone;
   todayDate: IsoDate;
   realtime: RealtimeState;
 };
@@ -28,12 +30,14 @@ export type FamilyBoardViewState =
 export function createReadyFamilyBoardState(
   board: FamilyBoardState,
   householdName: string,
+  timezone: Timezone,
   todayDate: IsoDate,
 ): ReadyFamilyBoardState {
   return {
     status: 'ready',
     board,
     householdName,
+    timezone,
     todayDate,
     realtime: {
       status: 'live',

@@ -5,6 +5,7 @@ import {
   isoTimestampSchema,
   nonEmptyStringSchema,
   scheduleRulesSchema,
+  timezoneSchema,
 } from './shared';
 
 export const personSchema = z
@@ -57,6 +58,14 @@ export const streakSchema = z
   })
   .strict();
 
+export const familySettingsSchema = z
+  .object({
+    family_id: identifierSchema,
+    timezone: timezoneSchema,
+    updated_at: isoTimestampSchema,
+  })
+  .strict();
+
 export const daySchema = z
   .object({
     date: isoDateSchema,
@@ -93,6 +102,7 @@ export type Task = z.infer<typeof taskSchema>;
 export type TaskCompletion = z.infer<typeof taskCompletionSchema>;
 export type SkipDay = z.infer<typeof skipDaySchema>;
 export type Streak = z.infer<typeof streakSchema>;
+export type FamilySettings = z.infer<typeof familySettingsSchema>;
 export type Day = z.infer<typeof daySchema>;
 export type TaskInstance = z.infer<typeof taskInstanceSchema>;
 export type PersonDayState = z.infer<typeof personDayStateSchema>;

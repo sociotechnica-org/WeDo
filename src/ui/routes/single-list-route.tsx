@@ -4,24 +4,10 @@ import { CompletionRing } from '@/ui/components/completion-ring';
 import { DayNavigation } from '@/ui/components/day-navigation';
 import { getPersonPalette } from '@/ui/components/person-palette';
 import { RealtimeStatusBanner } from '@/ui/components/realtime-status-banner';
+import { SettingsLink } from '@/ui/components/settings-link';
 import { TaskRow } from '@/ui/components/task-row';
 import { buildDayHref } from '@/ui/lib/day-navigation';
 import { useReadyBoard } from '@/ui/routes/use-ready-board';
-
-function getProgressMessage(completedCount: number, totalCount: number) {
-  if (totalCount === 0) {
-    return 'No tasks resting on this page today.';
-  }
-
-  const taskLabel = totalCount === 1 ? 'task' : 'tasks';
-  const countMessage = `${completedCount} of ${totalCount} ${taskLabel} marked for this day.`;
-
-  if (completedCount === totalCount) {
-    return `${countMessage} Everything on this page is resting in blue.`;
-  }
-
-  return `${countMessage} Tap any line to wash it blue.`;
-}
 
 export function SingleListRoute() {
   const { personId } = useParams();
@@ -112,23 +98,16 @@ export function SingleListRoute() {
   return (
     <main className="paper-canvas min-h-screen px-4 py-5 sm:px-6 md:px-8 md:py-8 lg:px-10 lg:py-10">
       <div className="mx-auto flex max-w-[78rem] flex-col gap-6">
-        <header className="paper-sheet rounded-[2.8rem] border border-[rgba(107,90,75,0.08)] px-5 py-5 md:px-7 md:py-6 lg:px-8">
-          <div className="grid gap-5 md:grid-cols-[1fr_auto_1fr] md:items-start">
-            <div>
-              <p className="scribe-label text-[0.68rem] uppercase tracking-[0.38em] text-[var(--color-ink-soft)]">
-                Shared family board
-              </p>
-              <h1 className="hand-title mt-2 text-[4.8rem] leading-[0.88] text-[var(--color-ink)] lg:text-[5.8rem]">
-                WeDo
-              </h1>
+        <header className="px-1 py-1 md:px-2">
+          <div className="grid gap-4 md:grid-cols-[auto_minmax(20rem,1fr)_auto] md:items-start">
+            <h1 className="hand-title text-[2.4rem] leading-none text-[var(--color-ink)] lg:text-[3rem]">
               <Link
-                className="stationery-link mt-4 px-5 py-2.5 text-[1.2rem]"
+                className="text-[var(--color-ink)] no-underline"
                 to={buildDayHref('/', board.day.date, todayDate)}
               >
-                <span aria-hidden="true">←</span>
-                <span>Back</span>
+                WeDo
               </Link>
-            </div>
+            </h1>
 
             <DayNavigation
               currentDate={board.day.date}
@@ -139,12 +118,9 @@ export function SingleListRoute() {
             />
 
             <div className="justify-self-start md:justify-self-end">
-              <Link
-                className="stationery-link px-5 py-2.5 text-[1.1rem] text-[var(--color-ink)]"
+              <SettingsLink
                 to={buildDayHref('/settings', board.day.date, todayDate)}
-              >
-                Settings
-              </Link>
+              />
             </div>
           </div>
         </header>
@@ -167,18 +143,12 @@ export function SingleListRoute() {
               tint={palette.wash}
               totalCount={personState.tasks.length}
             />
-            <p className="scribe-label mt-5 text-[0.62rem] uppercase tracking-[0.34em] text-[var(--color-ink-soft)]">
-              Focused list
-            </p>
             <h2
-              className="hand-title mt-3 text-[4.2rem] leading-[0.88] md:text-[5.6rem]"
+              className="hand-title mt-5 text-[4.2rem] leading-[0.88] md:text-[5.6rem]"
               style={{ color: palette.ink }}
             >
               {personState.person.name}
             </h2>
-            <p className="hand-link mt-4 text-[1.3rem] leading-8 text-[var(--color-ink-soft)]">
-              {getProgressMessage(completedCount, personState.tasks.length)}
-            </p>
           </div>
 
           <ul

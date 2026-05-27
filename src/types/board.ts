@@ -3,6 +3,7 @@ import {
   identifierSchema,
   isoDateSchema,
   nonEmptyStringSchema,
+  timezoneSchema,
 } from './shared';
 
 export const boardRequestQuerySchema = z
@@ -15,6 +16,7 @@ export const boardBootstrapSchema = z
   .object({
     familyId: identifierSchema,
     householdName: nonEmptyStringSchema,
+    timezone: timezoneSchema,
     date: isoDateSchema,
     todayDate: isoDateSchema,
   })

@@ -6,6 +6,7 @@ import {
   personSchema,
   streakSchema,
   taskSchema,
+  type FamilySettings,
   type Person,
   type Streak,
   type Task,
@@ -13,6 +14,7 @@ import {
 import {
   buildBootstrapSeedSql,
   martinFamilyId,
+  martinFamilySettings,
   martinFamilyPersons,
   martinFamilyStreaks,
   martinFamilyTasks,
@@ -103,10 +105,12 @@ describe('db seed data', () => {
   });
 
   it('keeps the exported seed collections aligned to the contract types', () => {
+    const familySettings: FamilySettings = martinFamilySettings;
     const persons: Person[] = martinFamilyPersons;
     const tasks: Task[] = martinFamilyTasks;
     const streaks: Streak[] = martinFamilyStreaks;
 
+    expect(familySettings.family_id).toBe(martinFamilyId);
     expect(persons).toHaveLength(6);
     expect(tasks.length).toBeGreaterThan(0);
     expect(streaks).toHaveLength(6);
@@ -154,9 +158,7 @@ describeNodeSqlite('db seed SQL path', () => {
       .prepare('SELECT COUNT(*) AS count FROM persons')
       .get() as { count: number };
     const martinPersonCount = db
-      .prepare(
-        'SELECT COUNT(*) AS count FROM persons WHERE family_id = ?',
-      )
+      .prepare('SELECT COUNT(*) AS count FROM persons WHERE family_id = ?')
       .get(martinFamilyId) as { count: number };
 
     expect(personCount.count).toBe(martinFamilyPersons.length + 1);
@@ -188,10 +190,14 @@ describeNodeSqlite('db seed SQL path', () => {
     const streakCount = db
       .prepare('SELECT COUNT(*) AS count FROM streaks')
       .get() as { count: number };
+    const settingsCount = db
+      .prepare('SELECT COUNT(*) AS count FROM family_settings')
+      .get() as { count: number };
 
     expect(personCount.count).toBe(martinFamilyPersons.length);
     expect(taskCount.count).toBe(martinFamilyTasks.length);
     expect(streakCount.count).toBe(martinFamilyStreaks.length);
+    expect(settingsCount.count).toBe(1);
   });
 
   it('restores the canonical household after local settings mutations', () => {
@@ -211,6 +217,8 @@ describeNodeSqlite('db seed SQL path', () => {
       UPDATE persons
       SET name = 'Ada', display_order = 5
       WHERE name = 'Cora';
+      UPDATE family_settings
+      SET timezone = 'America/Los_Angeles';
     `);
 
     db.exec(buildLocalSeedSql());
@@ -224,12 +232,16 @@ describeNodeSqlite('db seed SQL path', () => {
     const streakCount = db
       .prepare('SELECT COUNT(*) AS count FROM streaks')
       .get() as { count: number };
+    const settings = db
+      .prepare('SELECT timezone FROM family_settings WHERE family_id = ?')
+      .get(martinFamilyId) as { timezone: string };
 
     expect(people.map((person) => person.name)).toEqual(
       martinFamilyPersons.map((person) => person.name),
     );
     expect(taskCount.count).toBe(martinFamilyTasks.length);
     expect(streakCount.count).toBe(martinFamilyStreaks.length);
+    expect(settings.timezone).toBe(martinFamilySettings.timezone);
   });
 
   it('enforces that seeded tasks stay in the same family as their assignee', () => {

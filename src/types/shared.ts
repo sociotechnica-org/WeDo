@@ -46,9 +46,19 @@ export const scheduleRulesSchema = z
     path: ['days'],
   });
 
-export const defaultTimezone = 'America/New_York' as const;
+export const supportedTimezones = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Phoenix',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+] as const;
 
-export const timezoneSchema = z.literal(defaultTimezone);
+export const defaultTimezone = supportedTimezones[0];
+
+export const timezoneSchema = z.enum(supportedTimezones);
 
 function getIsoDateParts(value: string) {
   const [year = 0, month = 1, day = 1] = value.split('-').map(Number);
