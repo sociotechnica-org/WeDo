@@ -72,6 +72,30 @@ describe('seed cloudflare mode parsing', () => {
       parseSeedOptionsFromArgs(['--remote', '--reset']),
     ).toThrowError(/only available for local d1/i);
   });
+
+  it('accepts a Wrangler environment for named Cloudflare environments', () => {
+    expect(
+      parseSeedOptionsFromArgs([
+        '--remote',
+        '--bootstrap',
+        '--wrangler-env=preview',
+      ]),
+    ).toEqual({
+      mode: 'bootstrap',
+      target: 'remote',
+      wranglerEnv: 'preview',
+    });
+  });
+
+  it('rejects conflicting Wrangler environments', () => {
+    expect(() =>
+      parseSeedOptionsFromArgs([
+        '--remote',
+        '--wrangler-env=preview',
+        '--wrangler-env=staging',
+      ]),
+    ).toThrowError(/conflicting wrangler environments/i);
+  });
 });
 
 describe('seed cloudflare wrangler arguments', () => {
@@ -93,6 +117,22 @@ describe('seed cloudflare wrangler arguments', () => {
     );
     expect(buildWranglerSeedArgs('/tmp/seed.sql', 'preview')).toContain(
       '--preview',
+    );
+  });
+
+  it('adds the Wrangler environment before the location flag', () => {
+    expect(buildWranglerSeedArgs('/tmp/seed.sql', 'remote', 'preview')).toEqual(
+      [
+        'd1',
+        'execute',
+        'DB',
+        '--env',
+        'preview',
+        '--remote',
+        '--file',
+        '/tmp/seed.sql',
+        '--yes',
+      ],
     );
   });
 });

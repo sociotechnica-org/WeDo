@@ -27,6 +27,21 @@ one family-scoped Durable Object namespace, and the production custom domain
 
 ## Deploy Flow
 
+Production deploys automatically from GitHub after a pull request merges to
+`main`. Pull requests deploy the `preview` Wrangler environment to
+`https://we-do-preview.jessmartin.workers.dev` and comment that preview URL
+back on the PR. The preview environment uses its own D1 database
+(`we-do-preview`) and stub natural-language parsing, so preview smoke tests do
+not mutate production household data or require the production Anthropic secret.
+
+The workflow requires these GitHub Actions secrets:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN`
+
+The manual deploy flow is still available when you need to repair or inspect a
+deploy from a trusted local machine:
+
 1. Validate the checked-in deploy configuration:
    - `npm run deploy:check`
 2. Apply the remote schema:
