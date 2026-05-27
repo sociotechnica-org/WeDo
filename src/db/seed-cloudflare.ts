@@ -23,8 +23,9 @@ export type SeedOptions = {
   target: SeedTarget;
 };
 
-type WranglerCommandOptions = {
+type BuildWranglerCommandOptions = {
   localWranglerPath?: string;
+  localWranglerExists?: (path: string) => boolean;
 };
 
 function getLocalWranglerPath(): string {
@@ -38,14 +39,15 @@ function getLocalWranglerPath(): string {
 
 export function buildWranglerCommand(
   args: string[],
-  options: WranglerCommandOptions = {},
+  options: BuildWranglerCommandOptions = {},
 ): {
   args: string[];
   command: string;
 } {
   const localWranglerPath = options.localWranglerPath ?? getLocalWranglerPath();
+  const localWranglerExists = options.localWranglerExists ?? existsSync;
 
-  if (existsSync(localWranglerPath)) {
+  if (localWranglerExists(localWranglerPath)) {
     return {
       command: localWranglerPath,
       args,

@@ -108,6 +108,21 @@ describe('seed cloudflare wrangler invocation', () => {
       args: ['exec', 'wrangler', '--', '--version'],
     });
   });
+
+  it('prefers the local wrangler binary when it is installed', () => {
+    const localWranglerPath =
+      process.platform === 'win32'
+        ? 'C:\\repo\\node_modules\\.bin\\wrangler.cmd'
+        : '/repo/node_modules/.bin/wrangler';
+    const invocation = buildWranglerCommand(['--version'], {
+      localWranglerPath,
+      localWranglerExists: () => true,
+    });
+
+    expect(invocation.args).toEqual(['--version']);
+    expect(invocation.command).toBe(localWranglerPath);
+    expect(invocation.command).toMatch(/wrangler(\.cmd)?$/);
+  });
 });
 
 describe('seed cloudflare SQL selection', () => {
