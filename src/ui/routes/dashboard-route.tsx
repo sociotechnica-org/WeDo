@@ -17,14 +17,19 @@ export function DashboardRoute() {
       <div className="mx-auto flex max-w-[92rem] flex-col gap-6">
         <header className="px-1 py-1 md:px-2">
           <div className="grid gap-4 md:grid-cols-[auto_minmax(20rem,1fr)_auto] md:items-start">
-            <h1 className="hand-title text-[2.4rem] leading-none text-[var(--color-ink)] lg:text-[3rem]">
-              <Link
-                className="text-[var(--color-ink)] no-underline"
-                to={buildDayHref('/', board.day.date, todayDate)}
-              >
-                WeDo
-              </Link>
-            </h1>
+            <div>
+              <p className="scribe-label mb-1 text-[0.64rem] uppercase tracking-[0.32em] text-[var(--color-ink-soft)]">
+                Shared family board
+              </p>
+              <h1 className="hand-title text-[2.4rem] leading-none text-[var(--color-ink)] lg:text-[3rem]">
+                <Link
+                  className="text-[var(--color-ink)] no-underline"
+                  to={buildDayHref('/', board.day.date, todayDate)}
+                >
+                  WeDo
+                </Link>
+              </h1>
+            </div>
 
             <DayNavigation
               currentDate={board.day.date}

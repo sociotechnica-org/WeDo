@@ -119,7 +119,7 @@ describe('Board routes', () => {
     expect(markup).toContain('href="/"');
     expect(markup).toContain('data-testid="day-skip-toggle"');
     expect(markup).toContain('SKIP DAY');
-    expect(markup).not.toContain('Shared family board');
+    expect(markup).toContain('Shared family board');
     expect(markup).not.toContain('stays visible in one calm glance');
     expect(markup).not.toContain('>Day<');
   });

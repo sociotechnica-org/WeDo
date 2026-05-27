@@ -5,6 +5,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "./worker.ts",
   "workers_dev": true,
+  "preview_urls": true,
   "routes": [
     {
       "pattern": "wedo.sociotechnica.org",
@@ -71,6 +72,34 @@
       "vars": {
         "HOUSEHOLD_NAME": "Maple House",
         "TASK_PARSER_MODE": "live",
+        "TIMEZONE": "America/New_York",
+      },
+    },
+    "preview": {
+      "name": "we-do-preview",
+      "workers_dev": true,
+      "preview_urls": true,
+      "routes": [],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "FAMILY_BOARD",
+            "class_name": "FamilyBoard",
+          },
+        ],
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "we-do-preview",
+          "database_id": "12441488-d85b-4dc2-9141-173a8387eeb5",
+          "preview_database_id": "12441488-d85b-4dc2-9141-173a8387eeb5",
+          "migrations_dir": "src/db/migrations",
+        },
+      ],
+      "vars": {
+        "HOUSEHOLD_NAME": "Maple House",
+        "TASK_PARSER_MODE": "stub",
         "TIMEZONE": "America/New_York",
       },
     },

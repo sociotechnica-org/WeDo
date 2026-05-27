@@ -63,8 +63,11 @@ Production is deployed to:
 
 - https://wedo.sociotechnica.org
 
-Cloudflare deployment instructions live in
-`docs/deployment/cloudflare.md`. The checked-in flow is:
+Pull requests deploy a Cloudflare preview Worker, and merges to `main`
+automatically deploy production through GitHub Actions. Cloudflare deployment
+instructions live in `docs/deployment/cloudflare.md`.
+
+The manual deploy flow remains available for trusted local repair work:
 
 ```bash
 npm run deploy:check
