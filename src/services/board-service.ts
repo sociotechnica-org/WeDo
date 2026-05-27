@@ -5,6 +5,7 @@ import {
   type WorkerBindings,
 } from '@/config/runtime';
 import { getPrimaryFamilyId } from '@/db/board-repository';
+import { getSavedFamilyTimezone } from '@/services/family-settings';
 import {
   addDaysToIsoDate,
   boardResponseSchema,
@@ -64,7 +65,6 @@ export async function getBoardResponse(
   const runtime = getRuntimeConfig(bindings);
   const now = options.now ?? new Date();
   const familyId = await getPrimaryFamilyId(bindings.DB);
-  const todayDate = getTodayForTimezone(runtime.timezone, now);
 
   if (!familyId) {
     throw new BoardBootstrapError(
@@ -72,15 +72,16 @@ export async function getBoardResponse(
     );
   }
 
+  const timezone =
+    (await getSavedFamilyTimezone(bindings.DB, familyId)) ?? runtime.timezone;
+  const todayDate = getTodayForTimezone(timezone, now);
+
   return boardResponseSchema.parse({
     board: {
       familyId,
       householdName: runtime.householdName,
-      date: resolveBoardDate(
-        runtime.timezone,
-        options.requestedDate,
-        now,
-      ),
+      timezone,
+      date: resolveBoardDate(timezone, options.requestedDate, now),
       todayDate,
     },
   });

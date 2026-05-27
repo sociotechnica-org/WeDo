@@ -7,12 +7,15 @@ import {
   createTaskMutationSchema,
   createTaskResponseSchema,
   dayCodeSchema,
+  familySettingsSchema,
   familyBoardStateSchema,
   initResponseSchema,
   nlTaskEntryRequestSchema,
   parsedTaskSchema,
   personSchema,
   personSettingsEntrySchema,
+  saveFamilySettingsRequestSchema,
+  saveFamilySettingsResponseSchema,
   savePersonsRequestSchema,
   savePersonsResponseSchema,
   scheduleRulesSchema,
@@ -117,6 +120,7 @@ describe('shared type contracts', () => {
         board: {
           familyId: 'family-maple',
           householdName: 'Maple House',
+          timezone: 'America/New_York',
           date: '2026-04-07',
           todayDate: '2026-04-08',
         },
@@ -125,6 +129,7 @@ describe('shared type contracts', () => {
       board: {
         familyId: 'family-maple',
         householdName: 'Maple House',
+        timezone: 'America/New_York',
         date: '2026-04-07',
         todayDate: '2026-04-08',
       },
@@ -218,6 +223,42 @@ describe('shared type contracts', () => {
     ).toEqual({
       task: exampleTask,
       state: exampleFamilyBoardState,
+    });
+
+    expect(
+      familySettingsSchema.parse({
+        family_id: 'family-maple',
+        timezone: 'America/Los_Angeles',
+        updated_at: '2026-04-08T18:45:00Z',
+      }),
+    ).toEqual({
+      family_id: 'family-maple',
+      timezone: 'America/Los_Angeles',
+      updated_at: '2026-04-08T18:45:00Z',
+    });
+
+    expect(
+      saveFamilySettingsRequestSchema.parse({
+        timezone: 'America/Chicago',
+      }),
+    ).toEqual({
+      timezone: 'America/Chicago',
+    });
+
+    expect(
+      saveFamilySettingsResponseSchema.parse({
+        settings: {
+          family_id: 'family-maple',
+          timezone: 'America/Chicago',
+          updated_at: '2026-04-08T18:45:00Z',
+        },
+      }),
+    ).toEqual({
+      settings: {
+        family_id: 'family-maple',
+        timezone: 'America/Chicago',
+        updated_at: '2026-04-08T18:45:00Z',
+      },
     });
 
     expect(

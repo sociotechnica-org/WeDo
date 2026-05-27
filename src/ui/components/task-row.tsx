@@ -64,12 +64,13 @@ function SketchCheckbox({
   const size = variant === 'single-list' ? 36 : 28;
   const strokeWidth = variant === 'single-list' ? 2.4 : 2;
   const checkStrokeWidth = variant === 'single-list' ? 4 : 3.5;
-  const path = variant === 'single-list' ? 'M9 18L16 27L28 10' : 'M7 14L12 20L21 8';
+  const path =
+    variant === 'single-list' ? 'M9 18L16 27L28 10' : 'M7 14L12 20L21 8';
 
   return (
     <span
       aria-hidden="true"
-      className="mt-1 grid shrink-0 place-items-center"
+      className="grid shrink-0 place-items-center"
       style={{
         height: `${size}px`,
         width: `${size}px`,
@@ -82,7 +83,11 @@ function SketchCheckbox({
         width={size}
       >
         <rect
-          fill={isCompleted ? 'rgba(93, 151, 206, 0.14)' : 'rgba(255, 251, 245, 0.56)'}
+          fill={
+            isCompleted
+              ? 'rgba(93, 151, 206, 0.14)'
+              : 'rgba(255, 251, 245, 0.56)'
+          }
           height={size - 10}
           rx={variant === 'single-list' ? 7 : 5}
           stroke="rgba(71, 58, 47, 0.78)"
@@ -149,7 +154,7 @@ export function TaskRow({
   const canDelete = variant === 'single-list' && onDelete !== undefined;
   const emojiSize = variant === 'single-list' ? 'text-2xl' : 'text-lg';
   const rowPadding =
-    variant === 'single-list' ? 'px-5 py-4 md:px-6 md:py-5' : 'px-3 py-2.5';
+    variant === 'single-list' ? 'px-5 py-4 md:px-6 md:py-5' : 'px-2 py-2.5';
   const rowTextSize =
     variant === 'single-list'
       ? 'text-[1.3rem] leading-8 md:text-[1.52rem] md:leading-9'
@@ -164,7 +169,8 @@ export function TaskRow({
       : canDelete && (isHovered || isFocusWithin || isTouchRevealOpen)
         ? deleteRevealWidth
         : 0;
-  const isDeleteVisible = deleteReveal > 0;
+  const isDeleteVisible =
+    canDelete && (deleteReveal > 0 || isHovered || isFocusWithin);
 
   function clearGesture() {
     gestureRef.current = null;
@@ -214,7 +220,11 @@ export function TaskRow({
     }
 
     suppressClickRef.current = true;
-    const nextReveal = clamp(gesture.originReveal - deltaX, 0, deleteRevealWidth);
+    const nextReveal = clamp(
+      gesture.originReveal - deltaX,
+      0,
+      deleteRevealWidth,
+    );
 
     dragRevealRef.current = nextReveal;
     setDragReveal(nextReveal);
@@ -268,7 +278,10 @@ export function TaskRow({
   function handleBlurCapture(event: FocusEvent<HTMLLIElement>) {
     const nextFocused = event.relatedTarget;
 
-    if (nextFocused instanceof Node && containerRef.current?.contains(nextFocused)) {
+    if (
+      nextFocused instanceof Node &&
+      containerRef.current?.contains(nextFocused)
+    ) {
       return;
     }
 
@@ -276,9 +289,20 @@ export function TaskRow({
   }
 
   const content = (
-    <div className={`flex items-start gap-3 ${variant === 'single-list' ? 'md:gap-4' : ''}`}>
-      <SketchCheckbox isCompleted={isCompleted} tint={tint} variant={variant} />
-      <span aria-hidden="true" className={`${emojiSize} leading-none`}>
+    <div
+      className={`flex items-center ${variant === 'single-list' ? 'gap-3 md:gap-4' : 'gap-2'}`}
+    >
+      {variant === 'single-list' ? (
+        <SketchCheckbox
+          isCompleted={isCompleted}
+          tint={tint}
+          variant={variant}
+        />
+      ) : null}
+      <span
+        aria-hidden="true"
+        className={`grid shrink-0 place-items-center ${emojiSize} leading-none ${variant === 'single-list' ? 'h-9 w-8' : 'h-7 w-5'}`}
+      >
         {task.task.emoji}
       </span>
       <span
@@ -348,7 +372,7 @@ export function TaskRow({
       </div>
       <button
         aria-label={`Toggle ${task.task.title}`}
-        className={`relative z-10 block w-full rounded-[inherit] text-left transition-transform duration-200 disabled:cursor-not-allowed ${rowPadding}`}
+        className={`relative z-10 block w-full rounded-[inherit] text-left disabled:cursor-not-allowed ${rowPadding} pr-24 md:pr-28`}
         disabled={disabled}
         onClick={handleRowClick}
         onPointerCancel={handlePointerCancel}
@@ -356,7 +380,6 @@ export function TaskRow({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         style={{
-          transform: `translateX(-${deleteReveal}px)`,
           touchAction: 'pan-y',
         }}
         type="button"

@@ -73,29 +73,24 @@ test('renders the realtime household dashboard with seeded family data', async (
 
   await page.getByRole('link', { name: "Open Jess's list" }).click();
 
-  await expect(page.getByRole('link', { name: 'Back' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'WeDo' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add task' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Jess' })).toBeVisible();
   await expect(page).toHaveURL(/people\/[^/?]+\?day=/);
-  const progressText = page.getByText(/0 of 1 task marked for this day\./);
-  await expect(progressText).toBeVisible();
+  const focusedCompletionRing = page.getByLabel('0 of 1 tasks complete');
+  await expect(focusedCompletionRing).toBeVisible();
   expect(
     Number(
       (await readComputedStyles(page.getByRole('heading', { name: 'Jess' })))
         .fontWeight,
     ),
   ).toBeLessThanOrEqual(500);
-  expect(
-    Number((await readComputedStyles(progressText)).fontWeight),
-  ).toBeLessThanOrEqual(500);
 
   await page.getByRole('button', { name: 'Toggle Kitchen reset' }).click();
 
-  await expect(
-    page.getByText(/1 of 1 task marked for this day\./),
-  ).toBeVisible();
+  await expect(page.getByLabel('1 of 1 tasks complete')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Back' }).click();
+  await page.getByRole('link', { name: 'WeDo' }).click();
 
   await expect(page).toHaveURL(/day=/);
   await expect(page.getByTestId('person-column')).toHaveCount(6);
@@ -106,7 +101,7 @@ test('renders the realtime household dashboard with seeded family data', async (
 
   await page.getByRole('link', { name: "Open Jess's list" }).click();
   await page.getByRole('button', { name: 'Toggle Kitchen reset' }).click();
-  await page.getByRole('link', { name: 'Back' }).click();
+  await page.getByRole('link', { name: 'WeDo' }).click();
 
   const jessColumn = page.getByTestId('person-column').filter({
     has: page.getByRole('heading', { name: 'Jess' }),
@@ -146,16 +141,12 @@ test('creates a task from natural language in the focused single-list view', asy
     page.getByText('Task added to the recurring schedule.'),
   ).toBeVisible();
   await expect(page.getByText('Practice piano')).toBeVisible();
-  await expect(
-    page.getByText(/0 of 2 tasks marked for this day\./),
-  ).toBeVisible();
+  await expect(page.getByLabel('0 of 2 tasks complete')).toBeVisible();
 
   await page.reload();
 
   await expect(page.getByText('Practice piano')).toBeVisible();
-  await expect(
-    page.getByText(/0 of 2 tasks marked for this day\./),
-  ).toBeVisible();
+  await expect(page.getByLabel('0 of 2 tasks complete')).toBeVisible();
 });
 
 test('saves person settings, reorders columns, adds a person, and removes a person', async ({
@@ -265,11 +256,9 @@ test('deletes a task from the focused single-list view and removes it from the d
 
   await expect(page.getByText('Kitchen reset')).toHaveCount(0);
   await expect(page.getByText('No tasks for this day.')).toBeVisible();
-  await expect(
-    page.getByText('No tasks resting on this page today.'),
-  ).toBeVisible();
+  await expect(page.getByLabel('0 of 0 tasks complete')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Back' }).click();
+  await page.getByRole('link', { name: 'WeDo' }).click();
 
   await expect(page.getByText('Kitchen reset')).toHaveCount(0);
 });
@@ -294,7 +283,9 @@ test('renders the watercolor prototype route at an iPad-sized landscape viewport
   await expect(page.getByTestId('prototype-type-study')).toHaveCount(3);
   await expect(page.getByTestId('prototype-person-column')).toHaveCount(6);
   await expect(
-    page.getByTestId('watercolor-prototype-dashboard').getByText('Kitchen reset'),
+    page
+      .getByTestId('watercolor-prototype-dashboard')
+      .getByText('Kitchen reset'),
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'Back to dashboard' }),

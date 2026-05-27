@@ -30,7 +30,7 @@ export function PersonColumn({ personState, paletteIndex }: PersonColumnProps) {
 
   return (
     <section
-      className="paper-panel relative flex min-h-[29rem] flex-col overflow-hidden rounded-[2.25rem] border border-[rgba(107,90,75,0.08)] px-4 py-5 lg:min-h-[34rem]"
+      className="paper-panel relative flex min-h-[29rem] flex-col overflow-hidden rounded-[2.25rem] border border-[rgba(107,90,75,0.08)] px-3 py-5 lg:min-h-[34rem]"
       data-skipped={isSkipped ? 'true' : 'false'}
       data-testid="person-column"
       style={

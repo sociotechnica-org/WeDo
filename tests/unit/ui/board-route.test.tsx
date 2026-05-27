@@ -17,6 +17,7 @@ import { WatercolorPrototypeRoute } from '@/ui/routes/watercolor-prototype-route
 const readyBoardState = {
   status: 'ready' as const,
   householdName: 'River House',
+  timezone: 'America/New_York' as const,
   todayDate: '2026-04-08',
   realtime: {
     status: 'degraded' as const,
@@ -24,6 +25,7 @@ const readyBoardState = {
   },
   createTask: vi.fn(),
   deleteTask: vi.fn(),
+  saveFamilySettings: vi.fn(),
   savePersons: vi.fn(),
   toggleSkipDay: vi.fn(),
   toggleTask: vi.fn(),
@@ -90,8 +92,9 @@ function renderRoute(entry: string) {
 
 function getPrototypeLegendMarkup(markup: string) {
   return (
-    markup.match(/<ul class="prototype-sheet__legend-list">([\s\S]*?)<\/ul>/)?.[1] ??
-    ''
+    markup.match(
+      /<ul class="prototype-sheet__legend-list">([\s\S]*?)<\/ul>/,
+    )?.[1] ?? ''
   );
 }
 
@@ -110,26 +113,35 @@ describe('Board routes', () => {
     expect(useFamilyBoardMock).toHaveBeenCalledWith('2026-04-07');
     expect(markup).toContain('href="/people/person-jess?day=2026-04-07"');
     expect(markup).toContain('href="/settings?day=2026-04-07"');
+    expect(markup).toContain('aria-label="Settings"');
     expect(markup).toContain('aria-label="Go to previous day"');
     expect(markup).toContain('href="/?day=2026-04-06"');
     expect(markup).toContain('href="/"');
     expect(markup).toContain('data-testid="day-skip-toggle"');
     expect(markup).toContain('SKIP DAY');
+    expect(markup).not.toContain('Shared family board');
+    expect(markup).not.toContain('stays visible in one calm glance');
+    expect(markup).not.toContain('>Day<');
   });
 
-  it('renders the focused single-list route with back navigation and add-task affordance', () => {
+  it('renders the focused single-list route with home navigation and add-task affordance', () => {
     useFamilyBoardMock.mockReturnValue(readyBoardState);
 
     const markup = renderRoute('/people/person-jess?day=2026-04-07');
 
-    expect(markup).toContain('Focused list');
     expect(markup).toContain('href="/?day=2026-04-07"');
     expect(markup).toContain('href="/settings?day=2026-04-07"');
+    expect(markup).toContain('aria-label="Settings"');
     expect(markup).toContain('Add task');
     expect(markup).toContain('Toggle Kitchen reset');
     expect(markup).not.toContain('Delete Kitchen reset');
-    expect(markup).toContain('0 of 1 task marked for this day.');
-    expect(markup).toContain('Tap any line to wash it blue.');
+    expect(markup).toContain('aria-label="0 of 1 tasks complete"');
+    expect(markup).not.toContain('Focused list');
+    expect(markup).not.toContain('0 of 1 task marked for this day.');
+    expect(markup).not.toContain('Tap any line to wash it blue.');
+    expect(markup).not.toContain('>Back<');
+    expect(markup).not.toContain('Shared family board');
+    expect(markup).not.toContain('>Day<');
     expect(markup).toContain('data-testid="single-list-task-list"');
   });
 
@@ -175,6 +187,8 @@ describe('Board routes', () => {
     const markup = renderRoute('/settings?day=2026-04-07');
 
     expect(markup).toContain('Person management');
+    expect(markup).toContain('Home timezone');
+    expect(markup).toContain('America/New_York');
     expect(markup).toContain('Back to dashboard');
     expect(markup).toContain('Save settings');
     expect(markup).toContain('Jess');
