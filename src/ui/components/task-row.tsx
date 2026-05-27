@@ -332,7 +332,7 @@ export function TaskRow({
       }}
       ref={containerRef}
     >
-      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+      <div className="absolute inset-y-0 right-0 z-20 flex items-center pr-3">
         {isDeleteVisible ? (
           <button
             aria-label={`Delete ${task.task.title}`}

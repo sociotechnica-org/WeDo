@@ -25,13 +25,21 @@ function getLocalWranglerPath(): string {
   );
 }
 
-export function buildWranglerCommand(args: string[]): {
+type BuildWranglerCommandOptions = {
+  localWranglerExists?: (path: string) => boolean;
+};
+
+export function buildWranglerCommand(
+  args: string[],
+  options: BuildWranglerCommandOptions = {},
+): {
   args: string[];
   command: string;
 } {
   const localWranglerPath = getLocalWranglerPath();
+  const localWranglerExists = options.localWranglerExists ?? existsSync;
 
-  if (existsSync(localWranglerPath)) {
+  if (localWranglerExists(localWranglerPath)) {
     return {
       command: localWranglerPath,
       args,
@@ -48,7 +56,9 @@ function isSeedTarget(value: string): value is SeedTarget {
   return seedTargetValues.includes(value as SeedTarget);
 }
 
-export function parseSeedTargetFromArgs(args: ReadonlyArray<string>): SeedTarget {
+export function parseSeedTargetFromArgs(
+  args: ReadonlyArray<string>,
+): SeedTarget {
   const requestedTargets = args.flatMap((argument) => {
     if (argument === '--local') {
       return ['local'];
@@ -145,10 +155,10 @@ export async function seedCloudflareDatabase(
 }
 
 if (process.argv[1] === thisFilePath) {
-  void seedCloudflareDatabase(parseSeedTargetFromArgs(process.argv.slice(2))).catch(
-    (error: unknown) => {
-      console.error(error);
-      process.exitCode = 1;
-    },
-  );
+  void seedCloudflareDatabase(
+    parseSeedTargetFromArgs(process.argv.slice(2)),
+  ).catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
 }

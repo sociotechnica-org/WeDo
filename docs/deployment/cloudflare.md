@@ -1,11 +1,13 @@
 # Cloudflare Deployment
 
 WeDo deploys as a single Cloudflare Worker with static assets, one D1 database,
-and one family-scoped Durable Object namespace.
+one family-scoped Durable Object namespace, and the production custom domain
+`wedo.sociotechnica.org`.
 
 ## Prerequisites
 
 - Cloudflare account access for the target project
+- `sociotechnica.org` active in Cloudflare DNS
 - Wrangler authenticated locally:
   - `npm exec wrangler -- login`
 - Anthropic production API key available for secret upload
@@ -33,7 +35,8 @@ and one family-scoped Durable Object namespace.
    - `npm run db:seed:remote`
    - this bootstrap is non-destructive and only inserts the canonical Martin
      household rows if they are missing
-4. Deploy the Worker and static assets:
+4. Build, then deploy the Worker and static assets using the generated
+   Cloudflare Vite config:
    - `npm run deploy:prod`
 
 If you need to inspect the preview database separately, use:
@@ -42,7 +45,7 @@ If you need to inspect the preview database separately, use:
 
 ## Post-Deploy Checks
 
-1. Open the generated `workers.dev` URL and confirm the dashboard loads.
+1. Open `https://wedo.sociotechnica.org` and confirm the dashboard loads.
 2. Verify the Martin household is present:
    - 6 person columns
    - seeded recurring tasks such as `Kitchen reset` and `Vacuum`
@@ -66,12 +69,7 @@ If you need to inspect the preview database separately, use:
 
 ## Known Manual Steps
 
-- Custom domain setup is optional and must be configured in Cloudflare, not in
-  the repo.
 - Real device validation for the iPad home-screen flow cannot be completed from
   this workspace.
-- The deploy scripts intentionally fail while `wrangler.jsonc` still contains
-  placeholder top-level production D1 IDs, so production deploys do not
-  silently target invalid bindings.
 - `npm run db:seed:remote` is safe to re-run as a bootstrap command, but it is
   not a "reset production to seed state" tool.

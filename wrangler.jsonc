@@ -5,29 +5,35 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "./worker.ts",
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "wedo.sociotechnica.org",
+      "zone_name": "sociotechnica.org",
+      "custom_domain": true,
+    },
+  ],
   "durable_objects": {
     "bindings": [
       {
         "name": "FAMILY_BOARD",
-        "class_name": "FamilyBoard"
-      }
-    ]
+        "class_name": "FamilyBoard",
+      },
+    ],
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "we-do",
-      // Replace these placeholder IDs after creating the shared remote D1 database.
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "preview_database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "src/db/migrations"
-    }
+      "database_id": "7dbb2c91-a0ca-4c1f-9d94-1e7942367138",
+      "preview_database_id": "7dbb2c91-a0ca-4c1f-9d94-1e7942367138",
+      "migrations_dir": "src/db/migrations",
+    },
   ],
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["FamilyBoard"]
-    }
+      "new_sqlite_classes": ["FamilyBoard"],
+    },
   ],
   "assets": {
     "not_found_handling": "single-page-application",
@@ -49,9 +55,9 @@
         "bindings": [
           {
             "name": "FAMILY_BOARD",
-            "class_name": "FamilyBoard"
-          }
-        ]
+            "class_name": "FamilyBoard",
+          },
+        ],
       },
       "d1_databases": [
         {
@@ -59,8 +65,8 @@
           "database_name": "we-do",
           "database_id": "00000000-0000-0000-0000-000000000000",
           "preview_database_id": "00000000-0000-0000-0000-000000000000",
-          "migrations_dir": "src/db/migrations"
-        }
+          "migrations_dir": "src/db/migrations",
+        },
       ],
       "vars": {
         "HOUSEHOLD_NAME": "Maple House",

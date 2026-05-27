@@ -39,6 +39,10 @@ Structural tests under `tests/structural/` enforce the boundary so later feature
 
 ## Deployment
 
+Production is deployed to:
+
+- https://wedo.sociotechnica.org
+
 Cloudflare deployment instructions live in
 `docs/deployment/cloudflare.md`. The checked-in flow is:
 

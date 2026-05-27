@@ -22,9 +22,9 @@ describe('seed cloudflare target parsing', () => {
   });
 
   it('rejects conflicting target flags', () => {
-    expect(() =>
-      parseSeedTargetFromArgs(['--local', '--remote']),
-    ).toThrowError(/conflicting seed targets/i);
+    expect(() => parseSeedTargetFromArgs(['--local', '--remote'])).toThrowError(
+      /conflicting seed targets/i,
+    );
   });
 });
 
@@ -53,10 +53,24 @@ describe('seed cloudflare wrangler arguments', () => {
 
 describe('seed cloudflare wrangler invocation', () => {
   it('falls back to npm exec when no local wrangler binary is present', () => {
-    expect(buildWranglerCommand(['--version'])).toEqual({
+    expect(
+      buildWranglerCommand(['--version'], {
+        localWranglerExists: () => false,
+      }),
+    ).toEqual({
       command: process.platform === 'win32' ? 'npm.cmd' : 'npm',
       args: ['exec', 'wrangler', '--', '--version'],
     });
+  });
+
+  it('prefers the local wrangler binary when it is installed', () => {
+    const invocation = buildWranglerCommand(['--version'], {
+      localWranglerExists: () => true,
+    });
+
+    expect(invocation.args).toEqual(['--version']);
+    expect(invocation.command).toContain('node_modules');
+    expect(invocation.command).toMatch(/wrangler(\.cmd)?$/);
   });
 });
 

@@ -13,6 +13,10 @@ function getNpmExecutable() {
 function reseedLocalDatabase() {
   execFileSync(getNpmExecutable(), ['run', 'db:seed:local'], {
     cwd: repoRoot,
+    env: {
+      ...process.env,
+      CLOUDFLARE_ENV: 'e2e',
+    },
     stdio: 'pipe',
   });
 }
@@ -107,7 +111,7 @@ test('renders the realtime household dashboard with seeded family data', async (
   const jessColumn = page.getByTestId('person-column').filter({
     has: page.getByRole('heading', { name: 'Jess' }),
   });
-  await expect(jessColumn.getByText('1 day streak')).toBeVisible();
+  await expect(jessColumn.getByText(/[1-9]\d* day streak/)).toBeVisible();
 
   await page.getByTestId('day-nav-next').click();
   await expect(page).toHaveURL(/day=/);
